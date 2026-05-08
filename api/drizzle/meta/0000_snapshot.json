@@ -1,0 +1,265 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "89a09650-d4c0-4686-a07c-f636a12f1e83",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "pokemon_species": {
+      "name": "pokemon_species",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "color_name": {
+          "name": "color_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evolves_from_species_name": {
+          "name": "evolves_from_species_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "generation_name": {
+          "name": "generation_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "habitat_name": {
+          "name": "habitat_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_baby": {
+          "name": "is_baby",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_legendary": {
+          "name": "is_legendary",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "is_mythical": {
+          "name": "is_mythical",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seeded_at": {
+          "name": "seeded_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pokemon_species_name_unique": {
+          "name": "pokemon_species_name_unique",
+          "columns": ["name"],
+          "isUnique": true
+        },
+        "pokemon_species_name_index": {
+          "name": "pokemon_species_name_index",
+          "columns": ["name"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pokemon_species_genera": {
+      "name": "pokemon_species_genera",
+      "columns": {
+        "pokemon_species_id": {
+          "name": "pokemon_species_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "language_name": {
+          "name": "language_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "genus": {
+          "name": "genus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pokemon_species_genera_species_id_index": {
+          "name": "pokemon_species_genera_species_id_index",
+          "columns": ["pokemon_species_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pokemon_species_genera_pokemon_species_id_pokemon_species_id_fk": {
+          "name": "pokemon_species_genera_pokemon_species_id_pokemon_species_id_fk",
+          "tableFrom": "pokemon_species_genera",
+          "tableTo": "pokemon_species",
+          "columnsFrom": ["pokemon_species_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pokemon_species_genera_pokemon_species_id_language_name_pk": {
+          "columns": ["pokemon_species_id", "language_name"],
+          "name": "pokemon_species_genera_pokemon_species_id_language_name_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pokemon_species_names": {
+      "name": "pokemon_species_names",
+      "columns": {
+        "pokemon_species_id": {
+          "name": "pokemon_species_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "language_name": {
+          "name": "language_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pokemon_species_names_species_id_index": {
+          "name": "pokemon_species_names_species_id_index",
+          "columns": ["pokemon_species_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pokemon_species_names_pokemon_species_id_pokemon_species_id_fk": {
+          "name": "pokemon_species_names_pokemon_species_id_pokemon_species_id_fk",
+          "tableFrom": "pokemon_species_names",
+          "tableTo": "pokemon_species",
+          "columnsFrom": ["pokemon_species_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pokemon_species_names_pokemon_species_id_language_name_pk": {
+          "columns": ["pokemon_species_id", "language_name"],
+          "name": "pokemon_species_names_pokemon_species_id_language_name_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pokemon_species_pokedex_numbers": {
+      "name": "pokemon_species_pokedex_numbers",
+      "columns": {
+        "pokemon_species_id": {
+          "name": "pokemon_species_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pokedex_name": {
+          "name": "pokedex_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entry_number": {
+          "name": "entry_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pokemon_species_pokedex_numbers_species_id_index": {
+          "name": "pokemon_species_pokedex_numbers_species_id_index",
+          "columns": ["pokemon_species_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pokemon_species_pokedex_numbers_pokemon_species_id_pokemon_species_id_fk": {
+          "name": "pokemon_species_pokedex_numbers_pokemon_species_id_pokemon_species_id_fk",
+          "tableFrom": "pokemon_species_pokedex_numbers",
+          "tableTo": "pokemon_species",
+          "columnsFrom": ["pokemon_species_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pokemon_species_pokedex_numbers_pokemon_species_id_pokedex_name_pk": {
+          "columns": ["pokemon_species_id", "pokedex_name"],
+          "name": "pokemon_species_pokedex_numbers_pokemon_species_id_pokedex_name_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

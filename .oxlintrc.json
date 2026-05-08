@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn"],
+  "jsPlugins": [{ "name": "sql", "specifier": "eslint-plugin-sql" }],
   "options": {
     "typeAware": true
   },
@@ -9,7 +10,9 @@
   },
   "ignorePatterns": [],
   "rules": {
-    "typescript/no-deprecated": "error"
+    "sql/format": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/consistent-type-imports": "error"
   },
   "overrides": []
 }

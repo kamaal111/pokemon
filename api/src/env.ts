@@ -20,6 +20,8 @@ const LOG_LEVELS = {
   SILENT: 'silent',
 } as const;
 
+const DEFAULT_DATABASE_URL = new URL('../.data/pokemon.sqlite', import.meta.url).toString();
+
 const EnvSchema = z.object({
   PORT: z.coerce.number().gte(1000).lt(10_000).default(8080),
   DEBUG: z.coerce.boolean().default(false),
@@ -29,6 +31,8 @@ const EnvSchema = z.object({
     .pipe(z.enum(Object.values(SERVER_MODES)))
     .default(SERVER_MODES.API),
   LOG_LEVEL: z.enum(Object.values(LOG_LEVELS)).default(LOG_LEVELS.INFO),
+  DATABASE_URL: z.string().trim().min(1).default(DEFAULT_DATABASE_URL),
+  DATABASE_AUTH_TOKEN: z.string().trim().min(1).optional(),
 });
 
 const env = EnvSchema.parse(process.env);

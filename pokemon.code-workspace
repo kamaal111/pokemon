@@ -12,8 +12,6 @@
     "[typescript]": {
       "editor.defaultFormatter": "oxc.oxc-vscode",
     },
-    "cSpell.words": [
-      "Pokedex"
-    ],
+    "cSpell.words": ["pokeapi", "Pokedex"],
   },
 }

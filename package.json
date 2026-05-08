@@ -5,27 +5,33 @@
   "author": "Kamaal Farah",
   "scripts": {
     "format": "oxfmt --write .",
+    "format:sql": "sql-formatter --language sqlite --fix api/drizzle/*.sql",
     "format:check": "oxfmt --check .",
+    "format:check:sql": "sql-formatter --language sqlite --output /dev/null api/drizzle/*.sql",
     "format:check:api": "oxfmt --check api/",
-    "lint": "oxlint .",
-    "lint:api": "oxlint api/",
+    "lint": "oxlint --deny-warnings .",
+    "lint:sql": "pnpm run format:sql",
+    "lint:api": "oxlint --deny-warnings api/",
     "prepare": "husky",
     "api": "pnpm --filter pokemon-api"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "eslint-plugin-sql": "^3.4.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.2",
     "oxfmt": "^0.48.0",
     "oxlint": "^1.63.0",
     "oxlint-tsgolint": "^0.22.1",
+    "sql-formatter": "^15.7.3",
     "tsx": "^4.21.0"
   },
   "lint-staged": {
     "**/*.{cjs,js,mjs,ts,tsx}": [
       "oxlint --fix"
     ],
-    "**/*.{cjs,css,html,js,json,json5,jsx,md,mjs,scss,ts,tsx,yaml,yml}": "oxfmt --write --no-error-on-unmatched-pattern"
+    "**/*.{cjs,css,html,js,json,json5,jsx,md,mjs,scss,ts,tsx,yaml,yml}": "oxfmt --write --no-error-on-unmatched-pattern",
+    "api/drizzle/*.sql": "sql-formatter --language sqlite --fix"
   },
   "packageManager": "pnpm@10.33.0"
 }
