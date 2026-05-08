@@ -37,6 +37,8 @@
   - Apply this skill whenever upgrading, pinning, or auditing dependencies.
 - **ALWAYS use the `gh-actions-log-debug` skill for CI failure triage**
   - Apply this skill whenever investigating or fixing GitHub Actions failures.
+- **ALWAYS use the `database-workflows` skill for database work**
+  - Apply this skill whenever changing Drizzle schema files, SQL migrations, Drizzle config, database env contracts, or local database lifecycle workflows.
 - **ALWAYS validate unknown or external data**
   - Use Zod at boundaries instead of forcing types through.
 - **ALWAYS enforce user ownership when querying user-scoped resources**

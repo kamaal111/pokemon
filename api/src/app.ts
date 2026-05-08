@@ -9,8 +9,12 @@ import { REQUEST_ID_HEADER_NAME } from './constants/common';
 import type { HonoEnvironment } from './context';
 import { HEALTH_ROUTER_NAME, healthRouter } from './health';
 import { SEED_ROUTER_NAME, seedRouter } from './seed';
+import type { SeedRouterDependencies } from './seed/router';
+import type { DatabaseMiddlewareDependencies } from './database/middleware';
 
-function createApp() {
+export type AppDependencies = DatabaseMiddlewareDependencies & SeedRouterDependencies;
+
+function createApp(dependencies: AppDependencies) {
   const app = new Hono<HonoEnvironment>()
     .onError(handleServerError)
     .use(requestId({ headerName: REQUEST_ID_HEADER_NAME }))
@@ -19,7 +23,7 @@ function createApp() {
     .use(etag())
     .use(loggingMiddleware())
     .route(HEALTH_ROUTER_NAME, healthRouter())
-    .route(SEED_ROUTER_NAME, seedRouter());
+    .route(SEED_ROUTER_NAME, seedRouter(dependencies));
 
   return app;
 }

@@ -364,3 +364,4 @@ xcuserdata/
 
 scratch.*
 *.sqlite
+api/.data/

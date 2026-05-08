@@ -3,8 +3,10 @@ import type { RequestIdVariables } from 'hono/request-id';
 import type { Logger } from 'pino';
 
 import type { SessionResponse } from './auth';
+import type { Database } from './database';
 
 export interface InjectedContext {
+  database: Database;
   logger: Logger;
 }
 

@@ -233,6 +233,25 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
         self.assertIn("latest_eligible: 1.1.0-beta.1", result.stdout)
         self.assertIn("1.1.0-beta.1", result.stdout)
 
+    def test_reads_tags_from_dirty_local_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo = Path(temp_dir) / "swift-package"
+            repo.mkdir()
+            self.init_repo(repo)
+            self.commit_and_tag(repo, "Package.swift", "// stable\n", 8, "1.0.0")
+            (repo / "Package.swift").write_text("// dirty working tree\n")
+
+            result = run_python_script(
+                LIST_SWIFT_PACKAGE_TAGS,
+                str(repo),
+                "--min-age-days",
+                "1",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("latest_eligible: 1.0.0", result.stdout)
+        self.assertIn("1.0.0", result.stdout)
+
 
 class CheckOsvAdvisoriesTests(unittest.TestCase):
     def test_returns_zero_for_non_suspicious_advisory(self) -> None:

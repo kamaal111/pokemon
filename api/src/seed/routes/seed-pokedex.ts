@@ -1,18 +1,17 @@
+import type { TypedResponse } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
-import z from 'zod';
 
 import { OPENAPI_TAG } from '../constants';
 import type { HonoContext } from '@/context';
-import type { TypedResponse } from 'hono';
 import { STATUS_CODES } from '@/constants/http';
+import { seedPokedex, type SeedDependencies } from '../service';
+import { SeedPokeDexSuccessResponseSchema, type SeedPokeDexSuccessResponse } from '../responses';
 
-type SeedPokeDexSuccessResponse = z.infer<typeof SeedPokeDexSuccessResponseSchema>;
+interface SeedPokedexRouteDependencies {
+  pokedexSeedDependencies: SeedDependencies;
+}
 
-const SeedPokeDexSuccessResponseSchema = z.object({
-  saved: z.number().positive(),
-});
-
-function seedPokedexRoute() {
+function seedPokedexRoute(dependencies: SeedPokedexRouteDependencies) {
   return [
     '/pokedex',
     describeRoute({
@@ -30,7 +29,15 @@ function seedPokedexRoute() {
     async (
       c: HonoContext,
     ): Promise<TypedResponse<SeedPokeDexSuccessResponse, typeof STATUS_CODES.OK>> => {
-      return c.json({ saved: 0 }, STATUS_CODES.OK);
+      const result = await seedPokedex({
+        ...dependencies.pokedexSeedDependencies,
+        database: c.get('database'),
+      });
+
+      return c.json(
+        SeedPokeDexSuccessResponseSchema.parse({ saved: result.saved }),
+        STATUS_CODES.OK,
+      );
     },
   ] as const;
 }

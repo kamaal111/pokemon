@@ -75,9 +75,8 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="swift-tag-audit-") as temp_dir:
         repo_dir = Path(temp_dir)
-        run_git(["init", "--bare"], repo_dir)
-        run_git(["remote", "add", "origin", args.repository], repo_dir)
-        run_git(["fetch", "--force", "--tags", "origin"], repo_dir)
+        run_git(["init"], repo_dir)
+        run_git(["fetch", "--force", "--tags", args.repository], repo_dir)
         output = run_git(
             [
                 "for-each-ref",

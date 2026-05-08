@@ -54,6 +54,8 @@ Prefer the repository's command runner when one exists, such as `just`, `make`, 
 ### Reliability
 
 - Prefer fakes, stubs, or mocks over real external services unless the repository already relies on integration environments.
+- Prefer shared default mock setup in the repository's global test harness over defining fresh mocks inside each test file.
+- Give tests a small override surface for the few scenarios that need different responses, especially explicit error-path coverage, instead of rebuilding the whole mock locally.
 - Control clocks, timers, randomness, and async scheduling when possible.
 - Avoid sleeps and broad retries that hide race conditions.
 - Keep assertions focused enough that a failing test points to one behavior.
@@ -77,6 +79,7 @@ Prefer the repository's command runner when one exists, such as `just`, `make`, 
 
 - Reuse the repository's existing app-construction, dependency-injection, or service-factory patterns when available.
 - Reuse shared helpers for authentication, database setup, fixtures, and teardown.
+- Prefer custom test fixtures over ad hoc `beforeEach` blocks when setup needs to hand tests reusable resources such as apps, database handles, sessions, or mock controllers.
 - Assert response status, payload shape, side effects, and authorization behavior.
 - Assert clear server failures for missing prerequisite data when the contract would otherwise look valid but be semantically wrong.
 - Validate setup operations before using their outputs in later assertions.
@@ -87,6 +90,7 @@ Prefer the repository's command runner when one exists, such as `just`, `make`, 
 - Use the repository's fixture, factory, or helper patterns for creating records.
 - Assert persisted state after writes, not only returned values.
 - Keep tests isolated through transactions, temporary databases, cleanup hooks, or other repo-standard mechanisms.
+- When database creation is expensive, prefer one database instance or file per suite or worker and reset its contents between tests instead of recreating the whole database for every test.
 - If the project requires migrations, containers, or generated artifacts, use the established setup flow instead of inventing a parallel path.
 
 ## Writing Maintainable Tests

@@ -23,6 +23,52 @@ dev-api: prepare-api
 
     {{ PNR }} dev
 
+# Seed the pokedex SQLite database
+[working-directory("api")]
+seed-pokedex:
+    {{ PNR }} seed:pokedex
+
+# Generate a database migration from the Drizzle schema. Optional: just db-generate create_pokemon_types
+[working-directory("api")]
+db-generate name="":
+    #!/usr/bin/env zsh
+
+    if [[ -n "{{ name }}" ]]; then
+        {{ PNX }} drizzle-kit generate --name "{{ name }}"
+    else
+        {{ PNR }} db:generate
+    fi
+
+# Generate an empty custom SQL migration, useful for manual data fixes or rollback migrations. Usage: just db-generate-custom revert_bad_seed
+[working-directory("api")]
+db-generate-custom name:
+    {{ PNX }} drizzle-kit generate --custom --name "{{ name }}"
+
+# Apply unapplied database migrations
+[working-directory("api")]
+db-migrate:
+    {{ PNR }} db:migrate
+
+# Check the database migration history for conflicts
+[working-directory("api")]
+db-check:
+    {{ PNR }} db:check
+
+# Upgrade Drizzle migration snapshots after Drizzle version changes
+[working-directory("api")]
+db-up:
+    {{ PNR }} db:up
+
+# Reset the local repo database file and recreate it from migrations
+[working-directory("api")]
+db-reset-local:
+    {{ PNR }} db:reset-local
+
+# Reset the local repo database file, recreate it from migrations, and reseed the pokedex
+[working-directory("api")]
+db-reseed-local: db-reset-local
+    {{ PNR }} seed:pokedex
+
 # Run all verification checks
 ready: _ready-tasks
 
@@ -54,7 +100,7 @@ quality: lint format-check typecheck
 
 # Run quality checks for api
 [parallel]
-quality-api: lint-api format-check-api typecheck-api
+quality-api: lint-api lint-sql format-check-api format-sql typecheck-api
 
 # Type check
 typecheck: typecheck-api
@@ -65,29 +111,44 @@ typecheck-api:
     {{ PNR }} typecheck
 
 # Lint the project
-lint: lint-js
+[parallel]
+lint: lint-js lint-sql
 
 # Lint js code
 lint-js:
     {{ PNR }} lint
+
+# Lint sql code
+lint-sql:
+    {{ PNR }} lint:sql
 
 # Lint api code
 lint-api:
     {{ PNR }} lint:api
 
 # Format code
-format: format-js
+[parallel]
+format: format-js format-sql
 
 # Format js code
 format-js:
     {{ PNR }} format
 
+# Format sql code
+format-sql:
+    {{ PNR }} format:sql
+
 # Check code formatting
-format-check: format-check-js
+[parallel]
+format-check: format-check-js format-check-sql
 
 # Check js code formatting
 format-check-js:
     {{ PNR }} format:check
+
+# Check sql code formatting
+format-check-sql:
+    {{ PNR }} format:check:sql
 
 # Check api code formatting
 format-check-api:
