@@ -13,11 +13,13 @@
     "api": "pnpm --filter pokemon-api"
   },
   "devDependencies": {
+    "@types/node": "^25.6.2",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.2",
     "oxfmt": "^0.48.0",
     "oxlint": "^1.63.0",
-    "oxlint-tsgolint": "^0.22.1"
+    "oxlint-tsgolint": "^0.22.1",
+    "tsx": "^4.21.0"
   },
   "lint-staged": {
     "**/*.{cjs,js,mjs,ts,tsx}": [

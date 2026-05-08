@@ -29,6 +29,15 @@ export class APIException extends HTTPException {
   }
 }
 
+export class NotFound extends APIException {
+  constructor(c: ExceptionContext, options?: { message?: string }) {
+    super(c, STATUS_CODES.NOT_FOUND, {
+      message: options?.message ?? 'Not found',
+      code: 'NOT_FOUND',
+    });
+  }
+}
+
 export class InvalidPayload extends APIException {
   constructor(c: ExceptionContext, options?: { message?: string; context?: unknown }) {
     super(c, STATUS_CODES.BAD_REQUEST, {
