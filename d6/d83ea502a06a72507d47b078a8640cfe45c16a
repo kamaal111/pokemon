@@ -1,0 +1,36 @@
+.gitignore
+  h_66e824d23aae73 195-196
+api/src/middleware.ts
+  h_66e824d23aae73 1-17
+api/src/seed/constants.ts
+  h_66e824d23aae73 1-2
+api/src/seed/routes/seed-pokedex.ts
+  h_66e824d23aae73 1-38
+api/src/app.ts
+  h_66e824d23aae73 10-11,22
+api/src/exceptions.ts
+  h_66e824d23aae73 32-40
+pokemon.code-workspace
+  h_66e824d23aae73 15-17
+api/src/seed/router.ts
+  h_66e824d23aae73 1-14
+.agents/plans/1.seed.md
+  h_66e824d23aae73 1-277
+api/src/env.ts
+  h_66e824d23aae73 9
+api/src/seed/index.ts
+  h_66e824d23aae73 1-2
+AGENTS.md
+  h_66e824d23aae73 8-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "d6d83ea502a06a72507d47b078a8640cfe45c16a",
+  "prompts": {},
+  "humans": {
+    "h_66e824d23aae73": {
+      "author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
