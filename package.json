@@ -1,0 +1,29 @@
+{
+  "name": "pokemon",
+  "version": "1.0.0",
+  "keywords": [],
+  "author": "Kamaal Farah",
+  "scripts": {
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "format:check:api": "oxfmt --check api/",
+    "lint": "oxlint .",
+    "lint:api": "oxlint api/",
+    "prepare": "husky",
+    "api": "pnpm --filter pokemon-api"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.2",
+    "oxfmt": "^0.48.0",
+    "oxlint": "^1.63.0",
+    "oxlint-tsgolint": "^0.22.1"
+  },
+  "lint-staged": {
+    "**/*.{cjs,js,mjs,ts,tsx}": [
+      "oxlint --fix"
+    ],
+    "**/*.{cjs,css,html,js,json,json5,jsx,md,mjs,scss,ts,tsx,yaml,yml}": "oxfmt --write --no-error-on-unmatched-pattern"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

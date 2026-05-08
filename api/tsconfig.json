@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "composite": true,
+    "outDir": "./dist",
+    "paths": {
+      "@": ["./src/index.ts"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "package.json"],
+  "exclude": ["node_modules", "dist"]
+}

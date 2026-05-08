@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "path": "api",
+    },
+    {
+      "path": ".",
+      "name": "root",
+    },
+  ],
+  "settings": {
+    "[typescript]": {
+      "editor.defaultFormatter": "oxc.oxc-vscode",
+    },
+  },
+}
