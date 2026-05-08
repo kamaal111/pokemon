@@ -1,0 +1,80 @@
+.husky/pre-commit
+  h_d04002d393a349 1
+api/src/logging/index.ts
+  h_66e824d23aae73 1-2
+api/src/logging/middleware.ts
+  h_66e824d23aae73 1-41
+api/tsconfig.build.json
+  h_66e824d23aae73 1-4
+.gitignore
+  h_d04002d393a349 1-194
+api/src/index.ts
+  h_d04002d393a349 2,6
+  h_66e824d23aae73 1,3-5,7-15
+api/src/exceptions.ts
+  h_66e824d23aae73 1-46
+api/src/utils/type-utils.ts
+  h_66e824d23aae73 1
+api/src/context.ts
+  h_66e824d23aae73 1-28
+.oxfmtrc.json
+  h_66e824d23aae73 6
+  h_d04002d393a349 1-5
+api/src/health/router.ts
+  h_66e824d23aae73 1-11
+api/src/tests/setup.ts
+  h_66e824d23aae73 1-5
+api/vitest.config.ts
+  h_66e824d23aae73 1-27
+api/src/logging/utils.ts
+  h_66e824d23aae73 1-364
+.oxlintrc.json
+  h_d04002d393a349 1-15
+AGENTS.md
+  h_66e824d23aae73 1-7
+api/tsconfig.json
+  h_66e824d23aae73 1-22
+api/src/auth/index.ts
+  h_66e824d23aae73 1
+justfile
+  h_d04002d393a349 1-21,23-25,94-96,103-109,115-128
+  h_66e824d23aae73 22,26-93,97-102,110-114
+package.json
+  h_d04002d393a349 1-27
+api/src/env.ts
+  h_d04002d393a349 1-2,22-24,31-33,37-38
+  h_66e824d23aae73 3-21,25-30,34-36
+api/src/logging/http.ts
+  h_66e824d23aae73 1-68
+api/src/index.test.ts
+  h_66e824d23aae73 1-5
+api/package.json
+  h_66e824d23aae73 6
+api/src/app.ts
+  h_66e824d23aae73 1-25
+api/src/constants/common.ts
+  h_66e824d23aae73 1
+pokemon.code-workspace
+  h_d04002d393a349 1-5,7-12,16
+  h_66e824d23aae73 6,13-15
+api/src/logging/types.ts
+  h_66e824d23aae73 1-4
+api/src/constants/http.ts
+  h_66e824d23aae73 1-15
+api/src/server.ts
+  h_66e824d23aae73 1-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "43c55305461f953e4d2e85687c14b8c51ef302ea",
+  "prompts": {},
+  "humans": {
+    "h_66e824d23aae73": {
+      "author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    },
+    "h_d04002d393a349": {
+      "author": "Kamaal Farah"
+    }
+  }
+}
