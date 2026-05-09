@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  PNPM_VERSION: 10.33.0
+  PYTHON_VERSION: 3.14
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.detect.outputs.api }}
+      skills: ${{ steps.detect.outputs.skills }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Determine affected areas
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: .github/scripts/determine-affected-areas.sh
+
+  api:
+    name: API checks
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            api/pnpm-lock.yaml
+
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
+      - name: Prepare api
+        run: just prepare-api-ci
+
+      - name: Run quality checks for api
+        run: just quality-api
+
+      - name: Run api tests
+        run: just test-api
+
+  skills:
+    name: Skill script tests
+    needs: changes
+    if: needs.changes.outputs.skills == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
+      - name: Run skill tests
+        run: just test-skills

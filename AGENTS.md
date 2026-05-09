@@ -29,6 +29,14 @@
   - Do not add lint-disable comments, `@ts-ignore`, or `@ts-expect-error`.
 - **NEVER use TypeScript type assertions or casting**
   - Do not use `as Type` or `<Type>value`.
+- **ALWAYS use the `testing-best-practices` skill for test changes**
+  - Apply this skill whenever writing, maintaining, or modifying tests.
+- **ALWAYS use the `typescript-server-best-practices` skill for TypeScript server work**
+  - Apply this skill whenever implementing, maintaining, or refactoring server-side TypeScript code.
+- **ALWAYS use the `dependency-upgrade-best-practices` skill for dependency updates**
+  - Apply this skill whenever upgrading, pinning, or auditing dependencies.
+- **ALWAYS use the `gh-actions-log-debug` skill for CI failure triage**
+  - Apply this skill whenever investigating or fixing GitHub Actions failures.
 - **ALWAYS validate unknown or external data**
   - Use Zod at boundaries instead of forcing types through.
 - **ALWAYS enforce user ownership when querying user-scoped resources**
@@ -43,6 +51,6 @@
 - Use `just lint` for linting changes.
 - Use `just format` or `just format-check` for formatting changes.
 - Use `just typecheck` for TypeScript type changes.
-- Use `just compile-server` for server compilation changes.
+- Use `just compile-api` for server compilation changes.
 - Use `just test` for server or app behavior changes.
 - Run `just ready` last for code changes.
