@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { defineConfig } from 'vitest/config';
 
-import { SERVER_MODES } from '@/env';
+import { SERVER_MODES } from './src/env';
 
 export default defineConfig({
   resolve: {

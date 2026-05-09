@@ -36,12 +36,17 @@ compile-api:
     {{ PNR }} compile
 
 # Run tests
-test: test-api
+[parallel]
+test: test-api test-skills
 
 # Run api tests
 [working-directory("api")]
 test-api:
     {{ PNR }} test
+
+# Run dependency-upgrade skill script tests
+test-skills:
+    python3 -m unittest discover -s .agents/skills/dependency-upgrade-best-practices/tests -p 'test_*.py'
 
 # Run quality checks
 [parallel]
@@ -94,6 +99,10 @@ prepare: install-modules prepare-api
 # Prepare api
 prepare-api: install-modules-api
 
+# Prepare api for Linux CI
+[linux]
+prepare-api-ci: install-modules-ci
+
 # Bootstrap project
 bootstrap: prepare bootstrap-api
 
@@ -101,7 +110,7 @@ bootstrap: prepare bootstrap-api
 bootstrap-api: prepare-api
 
 # Open project in zed
-zed:
+z:
     zed .
 
 # Open project in vscode
@@ -111,6 +120,11 @@ code:
 [private]
 [parallel]
 _ready-tasks: quality test
+
+[private]
+install-modules-ci:
+    pnpm install --frozen-lockfile
+    pnpm --dir api install --frozen-lockfile
 
 [private]
 install-modules:
