@@ -1,8 +1,8 @@
 import { createMiddleware } from 'hono/factory';
 
-import type { HonoVariables } from './context';
-import env, { IS_TEST, type ServerMode } from './env';
-import { NotFound } from './exceptions';
+import type { HonoVariables } from './context.ts';
+import env, { IS_TEST, type ServerMode } from './env.ts';
+import { NotFound } from './exceptions.ts';
 
 const { MODE } = env;
 

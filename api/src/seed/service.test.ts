@@ -1,20 +1,20 @@
 import { describe, expect, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 
-import { integrationTest as test } from '@/tests/fixtures';
-import { pokemonSpecies } from '@/db/schema';
+import { integrationTest as test } from '../tests/fixtures.ts';
+import { pokemonSpecies } from '../db/schema/index.ts';
 import {
   countPokemonSpecies,
   getExistingSpeciesIds,
   getLastSuccessfulSeedSyncAt,
   insertPokemonSpecies,
-} from './repository';
+} from './repository.ts';
 import {
   buildSpeciesListingUrl,
   collectPokemonSpeciesSummaries,
   fetchPokemonSpeciesPage,
-} from './pokeapi';
-import { seedPokedex } from './service';
+} from './pokeapi.ts';
+import { seedPokedex } from './service.ts';
 
 const TEST_UPSTREAM_SPECIES_COUNT = 45;
 const EXTRA_DEPS = {};

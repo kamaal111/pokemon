@@ -6,10 +6,10 @@ import {
   pokemonSpeciesNames,
   pokemonSpeciesPokedexNumbers,
   seedSyncState,
-} from '@/db/schema';
-import { POKEDEX_SEED_SYNC_STATE_NAME } from './constants';
-import type { NormalizedPokemonSpecies } from './types';
-import type { Database } from '@/database';
+} from '../db/schema/index.ts';
+import { POKEDEX_SEED_SYNC_STATE_NAME } from './constants.ts';
+import type { NormalizedPokemonSpecies } from './types.ts';
+import type { Database } from '../database/index.ts';
 
 export async function getContiguousSeededPrefix(database: Database): Promise<number> {
   const rows = await database.db

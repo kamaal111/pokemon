@@ -1,18 +1,18 @@
-import type { Database } from '@/database';
+import type { Database } from '../database/index.ts';
 import {
   getContiguousSeededPrefix,
   getLastSuccessfulSeedSyncAt,
   getExistingSpeciesIds,
   insertPokemonSpecies,
   markSuccessfulSeedSync,
-} from './repository';
+} from './repository.ts';
 import {
   collectPokemonSpeciesSummaries,
   fetchPokemonSpeciesDetails,
   fetchPokemonSpeciesPage,
-} from './pokeapi';
-import type { SeedPokeDexSuccessResponse } from './responses';
-import env from '@/env';
+} from './pokeapi.ts';
+import type { SeedPokeDexSuccessResponse } from './responses.ts';
+import env from '../env.ts';
 
 export interface SeedDependencies {
   fetch: typeof fetch;

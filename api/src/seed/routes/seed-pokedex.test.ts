@@ -2,11 +2,11 @@ import url from 'node:url';
 
 import { describe, expect, vi } from 'vitest';
 
-import { integrationTest as test } from '@/tests/fixtures';
-import { SERVER_MODES } from '@/env';
-import { countPokemonSpecies } from '../repository';
-import { buildSpeciesListingUrl } from '../pokeapi';
-import { createSpeciesDetail, jsonResponse } from '@/tests/utils';
+import { integrationTest as test } from '../../tests/fixtures.ts';
+import { SERVER_MODES } from '../../env.ts';
+import { countPokemonSpecies } from '../repository.ts';
+import { buildSpeciesListingUrl } from '../pokeapi.ts';
+import { createSpeciesDetail, jsonResponse } from '../../tests/utils.ts';
 
 const TEST_UPSTREAM_SPECIES_COUNT = 45;
 
@@ -70,7 +70,7 @@ describe('POST /seed/pokedex', () => {
     vi.resetModules();
     vi.stubEnv('MODE', SERVER_MODES.API);
     try {
-      const { default: createApp } = await import('@/app');
+      const { default: createApp } = await import('../../app.ts');
       const apiModeApp = createApp({
         databaseConfig: { url: url.pathToFileURL(databasePath).toString() },
         pokedexSeedDependencies: seedDependencies,

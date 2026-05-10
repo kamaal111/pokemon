@@ -6,14 +6,14 @@ import { HTTPException } from 'hono/http-exception';
 import pino from 'pino';
 import type { DestinationStream, LevelWithSilent, Logger, LoggerOptions } from 'pino';
 
-import type { LogLevel, ServerMode } from '@/env';
-import env, { IS_DEBUG } from '@/env';
-import packageJson from '../../package.json';
-import type { LogBindings, LogScalar, LogValue } from './types';
-import type { HonoContext, HonoEnvironment } from '@/context';
-import { getRequestLogger, getRouteForLog, markRequestFailed } from './http';
-import { STATUS_CODES } from '@/constants/http';
-import { APIException, InvalidValidation } from '@/exceptions';
+import type { LogLevel, ServerMode } from '../env.ts';
+import env, { IS_DEBUG } from '../env.ts';
+import packageJson from '../../package.json' with { type: 'json' };
+import type { LogBindings, LogScalar, LogValue } from './types.ts';
+import type { HonoContext, HonoEnvironment } from '../context.ts';
+import { getRequestLogger, getRouteForLog, markRequestFailed } from './http.ts';
+import { STATUS_CODES } from '../constants/http.ts';
+import { APIException, InvalidValidation } from '../exceptions.ts';
 
 interface CreateLoggerOptions {
   destination?: DestinationStream;

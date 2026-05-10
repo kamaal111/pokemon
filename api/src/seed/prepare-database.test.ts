@@ -5,8 +5,8 @@ import url from 'node:url';
 
 import { describe, expect, test } from 'vitest';
 
-import { createDatabase } from '@/database';
-import { prepareDatabaseForPokedexSeed } from './prepare-database';
+import { createDatabase } from '../database/index.ts';
+import { prepareDatabaseForPokedexSeed } from './prepare-database.ts';
 
 const LOCAL_DATA_DIRECTORY_PATH = url.fileURLToPath(new URL('../../.data/', import.meta.url));
 

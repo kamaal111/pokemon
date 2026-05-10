@@ -1,8 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import url from 'node:url';
 
-import { createDatabase, type Database, type DatabaseConfig } from '@/database';
-import { resetLocalDatabase } from '@/database/local-reset';
+import { createDatabase, type Database, type DatabaseConfig } from '../database/index.ts';
+import { resetLocalDatabase } from '../database/local-reset.ts';
 
 const REQUIRED_POKEDEX_SEED_TABLE_NAME = 'seed_sync_state';
 

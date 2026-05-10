@@ -2,7 +2,7 @@ import type { Env, Hono } from 'hono';
 import type { BlankEnv } from 'hono/types';
 import { serve, type ServerType } from '@hono/node-server';
 
-import env from './env';
+import env from './env.ts';
 
 const { PORT } = env;
 const SIGNALS_TO_TERMINATE_ON: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];

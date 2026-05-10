@@ -185,7 +185,7 @@ _ready-tasks: quality test
 [private]
 install-modules-ci:
     pnpm install --frozen-lockfile
-    pnpm --dir api install --frozen-lockfile
+    pnpm --dir api install --frozen-lockfile --ignore-workspace
 
 [private]
 install-modules:
@@ -200,4 +200,4 @@ install-modules-api:
     #!/usr/bin/env zsh
 
     . ~/.zshrc || true
-    echo "Y" | {{ PN }} i
+    echo "Y" | {{ PN }} i --ignore-workspace

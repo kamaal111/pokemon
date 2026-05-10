@@ -1,15 +1,9 @@
-import path from 'node:path';
-
 import { defineConfig } from 'vitest/config';
 
 import { SERVER_MODES } from './src/env';
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+  resolve: {},
   test: {
     globals: true,
     environment: 'node',

@@ -1,11 +1,11 @@
 import type { TypedResponse } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 
-import { OPENAPI_TAG } from '../constants';
-import type { HonoContext } from '@/context';
-import { STATUS_CODES } from '@/constants/http';
-import { seedPokedex, type SeedDependencies } from '../service';
-import { SeedPokeDexSuccessResponseSchema, type SeedPokeDexSuccessResponse } from '../responses';
+import { OPENAPI_TAG } from '../constants.ts';
+import type { HonoContext } from '../../context.ts';
+import { STATUS_CODES } from '../../constants/http.ts';
+import { seedPokedex, type SeedDependencies } from '../service.ts';
+import { SeedPokeDexSuccessResponseSchema, type SeedPokeDexSuccessResponse } from '../responses.ts';
 
 interface SeedPokedexRouteDependencies {
   pokedexSeedDependencies: SeedDependencies;

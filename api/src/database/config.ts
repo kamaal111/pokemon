@@ -1,4 +1,4 @@
-import env from '@/env';
+import env from '../env.ts';
 
 const { DATABASE_URL, DATABASE_AUTH_TOKEN } = env;
 

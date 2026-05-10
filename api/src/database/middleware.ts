@@ -1,8 +1,8 @@
 import { createMiddleware } from 'hono/factory';
 
-import type { HonoVariables } from '@/context';
-import type { DatabaseConfig } from './config';
-import { createDatabase } from './utils';
+import type { HonoVariables } from '../context.ts';
+import type { DatabaseConfig } from './config.ts';
+import { createDatabase } from './utils.ts';
 
 export interface DatabaseMiddlewareDependencies {
   databaseConfig: DatabaseConfig;

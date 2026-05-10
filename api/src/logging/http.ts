@@ -1,10 +1,10 @@
 import { routePath } from 'hono/route';
 import type { Logger } from 'pino';
 
-import type { HonoContext } from '@/context';
-import type { ServerMode } from '@/env';
-import { childLogger, createRequestLogger } from './utils';
-import env from '@/env';
+import type { HonoContext } from '../context.ts';
+import type { ServerMode } from '../env.ts';
+import { childLogger, createRequestLogger } from './utils.ts';
+import env from '../env.ts';
 
 export function initializeRequestLogger(c: HonoContext, mode: ServerMode) {
   const logger = createRequestLogger({

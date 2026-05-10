@@ -2,8 +2,8 @@ import type { Context, Input } from 'hono';
 import type { RequestIdVariables } from 'hono/request-id';
 import type { Logger } from 'pino';
 
-import type { SessionResponse } from './auth';
-import type { Database } from './database';
+import type { SessionResponse } from './auth/index.ts';
+import type { Database } from './database/index.ts';
 
 export interface InjectedContext {
   database: Database;

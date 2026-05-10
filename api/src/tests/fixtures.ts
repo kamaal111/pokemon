@@ -5,13 +5,13 @@ import url from 'node:url';
 
 import { test as baseTest, vi } from 'vitest';
 
-import createApp from '@/app';
-import { createDatabase } from '@/database';
-import { POKEAPI_SPECIES_PAGE_SIZE } from '@/seed/constants';
-import { buildSpeciesListingUrl } from '@/seed/pokeapi';
-import { clearPokemonSpeciesTables } from '@/seed/repository';
-import type { SeedDependencies } from '@/seed/service';
-import { createSpeciesDetail, jsonResponse } from './utils';
+import createApp from '../app.ts';
+import { createDatabase } from '../database/index.ts';
+import { POKEAPI_SPECIES_PAGE_SIZE } from '../seed/constants.ts';
+import { buildSpeciesListingUrl } from '../seed/pokeapi.ts';
+import { clearPokemonSpeciesTables } from '../seed/repository.ts';
+import type { SeedDependencies } from '../seed/service.ts';
+import { createSpeciesDetail, jsonResponse } from './utils.ts';
 
 const DEFAULT_UPSTREAM_SPECIES_COUNT = 45;
 

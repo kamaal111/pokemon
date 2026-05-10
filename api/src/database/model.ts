@@ -4,8 +4,8 @@ import { createClient, type Client } from '@libsql/client';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 
-import * as schema from '@/db/schema';
-import type { DatabaseConfig } from './config';
+import * as schema from '../db/schema/index.ts';
+import type { DatabaseConfig } from './config.ts';
 
 const MIGRATIONS_FOLDER_PATH = url.fileURLToPath(new URL('../../drizzle', import.meta.url));
 

@@ -4,4 +4,4 @@ export {
   pokemonSpeciesNames,
   pokemonSpeciesPokedexNumbers,
   seedSyncState,
-} from './pokemon-species';
+} from './pokemon-species.ts';

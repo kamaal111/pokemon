@@ -1,6 +1,6 @@
 import { describe, expect } from 'vitest';
 
-import { integrationTest as test } from '@/tests/fixtures';
+import { integrationTest as test } from './tests/fixtures.ts';
 
 describe('api app', () => {
   test('responds to the health check through the real app middleware stack', async ({ app }) => {
