@@ -1,12 +1,13 @@
-import { asc, between, eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 
 import {
   pokemonSpecies,
   pokemonSpeciesGenera,
   pokemonSpeciesNames,
   pokemonSpeciesPokedexNumbers,
+  seedSyncState,
 } from '@/db/schema';
-import { POKEDEX_SEED_TARGET } from './constants';
+import { POKEDEX_SEED_SYNC_STATE_NAME } from './constants';
 import type { NormalizedPokemonSpecies } from './types';
 import type { Database } from '@/database';
 
@@ -14,7 +15,6 @@ export async function getContiguousSeededPrefix(database: Database): Promise<num
   const rows = await database.db
     .select({ id: pokemonSpecies.id })
     .from(pokemonSpecies)
-    .where(between(pokemonSpecies.id, 1, POKEDEX_SEED_TARGET))
     .orderBy(asc(pokemonSpecies.id));
   let expectedId = 1;
   for (const row of rows) {
@@ -26,6 +26,29 @@ export async function getContiguousSeededPrefix(database: Database): Promise<num
   }
 
   return expectedId - 1;
+}
+
+export async function getLastSuccessfulSeedSyncAt(database: Database): Promise<string | null> {
+  const rows = await database.db
+    .select({ lastSuccessfulSyncAt: seedSyncState.lastSuccessfulSyncAt })
+    .from(seedSyncState)
+    .where(eq(seedSyncState.seedName, POKEDEX_SEED_SYNC_STATE_NAME))
+    .limit(1);
+
+  return rows[0]?.lastSuccessfulSyncAt ?? null;
+}
+
+export async function markSuccessfulSeedSync(database: Database, syncedAt: string): Promise<void> {
+  await database.db
+    .insert(seedSyncState)
+    .values({
+      seedName: POKEDEX_SEED_SYNC_STATE_NAME,
+      lastSuccessfulSyncAt: syncedAt,
+    })
+    .onConflictDoUpdate({
+      target: seedSyncState.seedName,
+      set: { lastSuccessfulSyncAt: syncedAt },
+    });
 }
 
 export async function getExistingSpeciesIds(
@@ -111,6 +134,7 @@ export async function clearPokemonSpeciesTables(database: Database): Promise<voi
   await database.db.delete(pokemonSpeciesGenera);
   await database.db.delete(pokemonSpeciesPokedexNumbers);
   await database.db.delete(pokemonSpecies);
+  await database.db.delete(seedSyncState);
 }
 
 export async function countPokemonSpecies(database: Database): Promise<number> {

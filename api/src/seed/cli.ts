@@ -1,13 +1,12 @@
-import { createDatabase, getDatabaseConfig } from '@/database';
+import { getDatabaseConfig } from '@/database';
 import { getPokedexSeedDependencies } from './config';
+import { prepareDatabaseForPokedexSeed } from './prepare-database';
 import { seedPokedex } from './service';
 
 async function run() {
-  const database = await createDatabase(getDatabaseConfig());
+  const database = await prepareDatabaseForPokedexSeed(getDatabaseConfig());
 
   try {
-    await database.migrate();
-
     const result = await seedPokedex({
       ...getPokedexSeedDependencies({}),
       database,

@@ -52,3 +52,9 @@ CREATE TABLE `pokemon_species_pokedex_numbers` (
 
 --> statement-breakpoint
 CREATE INDEX `pokemon_species_pokedex_numbers_species_id_index` ON `pokemon_species_pokedex_numbers` (`pokemon_species_id`);
+
+--> statement-breakpoint
+CREATE TABLE `seed_sync_state` (
+  `seed_name` text PRIMARY KEY NOT NULL,
+  `last_successful_sync_at` text NOT NULL
+);

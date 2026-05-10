@@ -8,6 +8,9 @@ import type { Database } from './database';
 export interface InjectedContext {
   database: Database;
   logger: Logger;
+  theWorld: {
+    now: () => Date;
+  };
 }
 
 interface RequestLifecycleVariables {

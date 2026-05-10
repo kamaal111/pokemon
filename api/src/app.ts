@@ -8,6 +8,7 @@ import { loggingMiddleware, handleServerError } from './logging';
 import { REQUEST_ID_HEADER_NAME } from './constants/common';
 import type { HonoEnvironment } from './context';
 import { HEALTH_ROUTER_NAME, healthRouter } from './health';
+import { theWorld } from './middleware';
 import { SEED_ROUTER_NAME, seedRouter } from './seed';
 import type { SeedRouterDependencies } from './seed/router';
 import type { DatabaseMiddlewareDependencies } from './database/middleware';
@@ -21,6 +22,7 @@ function createApp(dependencies: AppDependencies) {
     .use(compress())
     .use(secureHeaders())
     .use(etag())
+    .use(theWorld())
     .use(loggingMiddleware())
     .route(HEALTH_ROUTER_NAME, healthRouter())
     .route(SEED_ROUTER_NAME, seedRouter(dependencies));

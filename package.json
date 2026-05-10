@@ -5,9 +5,9 @@
   "author": "Kamaal Farah",
   "scripts": {
     "format": "oxfmt --write .",
-    "format:sql": "sql-formatter --language sqlite --fix api/drizzle/*.sql",
+    "format:sql": "node ./scripts/sql-formatter.mts --fix",
     "format:check": "oxfmt --check .",
-    "format:check:sql": "sql-formatter --language sqlite --output /dev/null api/drizzle/*.sql",
+    "format:check:sql": "node ./scripts/sql-formatter.mts --check",
     "format:check:api": "oxfmt --check api/",
     "lint": "oxlint --deny-warnings .",
     "lint:sql": "pnpm run format:sql",

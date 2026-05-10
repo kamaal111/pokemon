@@ -31,6 +31,7 @@ function seedPokedexRoute(dependencies: SeedPokedexRouteDependencies) {
     ): Promise<TypedResponse<SeedPokeDexSuccessResponse, typeof STATUS_CODES.OK>> => {
       const result = await seedPokedex({
         ...dependencies.pokedexSeedDependencies,
+        now: c.get('theWorld').now,
         database: c.get('database'),
       });
 

@@ -8,15 +8,18 @@ import { countPokemonSpecies } from '../repository';
 import { buildSpeciesListingUrl } from '../pokeapi';
 import { createSpeciesDetail, jsonResponse } from '@/tests/utils';
 
+const TEST_UPSTREAM_SPECIES_COUNT = 45;
+
 describe('POST /seed/pokedex', () => {
-  test('returns the number of newly seeded pokemon species', async ({ app, database }) => {
+  test('returns the number of newly seeded pokemon species', async ({ apiMock, app, database }) => {
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
     const response = await app.request('http://localhost/seed/pokedex', {
       method: 'POST',
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ saved: 40 });
-    await expect(countPokemonSpecies(database)).resolves.toBe(40);
+    await expect(response.json()).resolves.toEqual({ saved: TEST_UPSTREAM_SPECIES_COUNT });
+    await expect(countPokemonSpecies(database)).resolves.toBe(TEST_UPSTREAM_SPECIES_COUNT);
   });
 
   test('returns an internal server error when the upstream listing fetch fails', async ({

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "89a09650-d4c0-4686-a07c-f636a12f1e83",
+  "id": "95cbd1f0-a6fd-479a-ace4-24a7db19fdc0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "pokemon_species": {
@@ -248,6 +248,30 @@
           "name": "pokemon_species_pokedex_numbers_pokemon_species_id_pokedex_name_pk"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "seed_sync_state": {
+      "name": "seed_sync_state",
+      "columns": {
+        "seed_name": {
+          "name": "seed_name",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_successful_sync_at": {
+          "name": "last_successful_sync_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     }
