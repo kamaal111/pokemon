@@ -33,6 +33,7 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(Object.values(LOG_LEVELS)).default(LOG_LEVELS.INFO),
   DATABASE_URL: z.string().trim().min(1).default(DEFAULT_DATABASE_URL),
   DATABASE_AUTH_TOKEN: z.string().trim().min(1).optional(),
+  POKEDEX_SEED_COOLDOWN_DAYS: z.coerce.number().int().positive().default(1),
 });
 
 const env = EnvSchema.parse(process.env);

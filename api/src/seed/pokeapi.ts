@@ -1,10 +1,6 @@
 import z from 'zod';
 
-import {
-  POKEAPI_POKEMON_SPECIES_URL,
-  POKEAPI_SPECIES_PAGE_SIZE,
-  POKEDEX_SEED_TARGET,
-} from './constants';
+import { POKEAPI_POKEMON_SPECIES_URL, POKEAPI_SPECIES_PAGE_SIZE } from './constants';
 import type { NormalizedPokemonSpecies } from './types';
 import { normalizePokemonSpecies } from './normalize';
 
@@ -12,6 +8,12 @@ interface PokemonSpeciesSummary {
   id: number;
   name: string;
   url: string;
+}
+
+interface PokemonSpeciesPage {
+  count: number;
+  next: string | null;
+  results: PokemonSpeciesSummary[];
 }
 
 const ResourceSchema = z.object({ name: z.string().trim().min(1), url: z.url() });
@@ -76,37 +78,66 @@ function getSpeciesIdFromUrl(url: string): number {
   return Number.parseInt(matchValue, 10);
 }
 
+function mapPokemonSpeciesPage(
+  page: z.infer<typeof PokemonSpeciesListResponseSchema>,
+): PokemonSpeciesPage {
+  return {
+    count: page.count,
+    next: page.next,
+    results: page.results.map((summary) => ({
+      id: getSpeciesIdFromUrl(summary.url),
+      name: summary.name,
+      url: summary.url,
+    })),
+  };
+}
+
+export async function fetchPokemonSpeciesPage(
+  offset: number,
+  fetchImpl: typeof fetch,
+): Promise<PokemonSpeciesPage> {
+  const page = await fetchJson(
+    buildSpeciesListingUrl(offset),
+    PokemonSpeciesListResponseSchema,
+    fetchImpl,
+  );
+
+  return mapPokemonSpeciesPage(page);
+}
+
 export async function collectPokemonSpeciesSummaries(
   resumeOffset: number,
+  upstreamTotal: number,
+  firstPage: PokemonSpeciesPage,
   fetchImpl: typeof fetch,
 ): Promise<PokemonSpeciesSummary[]> {
   const collectedSummaries = new Map<number, Omit<PokemonSpeciesSummary, 'id'>>();
-  let nextUrl: string | null = buildSpeciesListingUrl(resumeOffset);
-  while (nextUrl != null && collectedSummaries.size < POKEDEX_SEED_TARGET - resumeOffset) {
-    const page: z.infer<typeof PokemonSpeciesListResponseSchema> = await fetchJson(
-      nextUrl,
-      PokemonSpeciesListResponseSchema,
-      fetchImpl,
-    );
-    for (const summary of page.results) {
-      const id = getSpeciesIdFromUrl(summary.url);
-      if (id <= resumeOffset) {
+  let currentPage: PokemonSpeciesPage | null = firstPage;
+  while (currentPage != null && collectedSummaries.size < upstreamTotal - resumeOffset) {
+    for (const summary of currentPage.results) {
+      if (summary.id <= resumeOffset) {
         continue;
       }
-      if (id > POKEDEX_SEED_TARGET) {
+      if (summary.id > upstreamTotal) {
         continue;
       }
-      if (collectedSummaries.has(id)) {
+      if (collectedSummaries.has(summary.id)) {
         continue;
       }
 
-      collectedSummaries.set(id, { name: summary.name, url: summary.url });
-      if (collectedSummaries.size >= POKEDEX_SEED_TARGET - resumeOffset) {
+      collectedSummaries.set(summary.id, { name: summary.name, url: summary.url });
+      if (collectedSummaries.size >= upstreamTotal - resumeOffset) {
         break;
       }
     }
 
-    nextUrl = page.next;
+    if (currentPage.next == null) {
+      currentPage = null;
+      continue;
+    }
+
+    const page = await fetchJson(currentPage.next, PokemonSpeciesListResponseSchema, fetchImpl);
+    currentPage = mapPokemonSpeciesPage(page);
   }
 
   return collectedSummaries

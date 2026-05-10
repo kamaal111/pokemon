@@ -1,12 +1,18 @@
 import type { Database } from '@/database';
 import {
   getContiguousSeededPrefix,
+  getLastSuccessfulSeedSyncAt,
   getExistingSpeciesIds,
   insertPokemonSpecies,
+  markSuccessfulSeedSync,
 } from './repository';
-import { POKEDEX_SEED_TARGET } from './constants';
-import { collectPokemonSpeciesSummaries, fetchPokemonSpeciesDetails } from './pokeapi';
+import {
+  collectPokemonSpeciesSummaries,
+  fetchPokemonSpeciesDetails,
+  fetchPokemonSpeciesPage,
+} from './pokeapi';
 import type { SeedPokeDexSuccessResponse } from './responses';
+import env from '@/env';
 
 export interface SeedDependencies {
   fetch: typeof fetch;
@@ -14,18 +20,30 @@ export interface SeedDependencies {
 
 interface SeedPokedexOptions extends SeedDependencies {
   database: Database;
+  now?: () => Date;
 }
 
 export async function seedPokedex(
   options: SeedPokedexOptions,
 ): Promise<SeedPokeDexSuccessResponse> {
+  const firstPage = await fetchPokemonSpeciesPage(0, options.fetch);
+  const lastSuccessfulSeedSyncAt = await getLastSuccessfulSeedSyncAt(options.database);
+  const resolveNow = options.now ?? (() => new Date());
+  if (isCooldownActive(lastSuccessfulSeedSyncAt, env.POKEDEX_SEED_COOLDOWN_DAYS, resolveNow())) {
+    return { saved: 0 };
+  }
+
+  const upstreamTotal = firstPage.count;
   const contiguousSeededPrefix = await getContiguousSeededPrefix(options.database);
-  if (contiguousSeededPrefix >= POKEDEX_SEED_TARGET) {
+  if (contiguousSeededPrefix >= upstreamTotal) {
+    await markSuccessfulSeedSync(options.database, resolveNow().toISOString());
     return { saved: 0 };
   }
 
   const candidateSpeciesSummaries = await collectPokemonSpeciesSummaries(
     contiguousSeededPrefix,
+    upstreamTotal,
+    firstPage,
     options.fetch,
   );
   const existingSpeciesIds = await getExistingSpeciesIds(
@@ -36,10 +54,11 @@ export async function seedPokedex(
     (species) => !existingSpeciesIds.has(species.id),
   );
   if (missingSpeciesSummaries.length === 0) {
+    await markSuccessfulSeedSync(options.database, resolveNow().toISOString());
     return { saved: 0 };
   }
 
-  const seededAt = new Date().toISOString();
+  const seededAt = resolveNow().toISOString();
   const normalizedPokemonSpecies = await fetchPokemonSpeciesDetails(
     missingSpeciesSummaries,
     options.fetch,
@@ -50,5 +69,25 @@ export async function seedPokedex(
     saved += await insertPokemonSpecies(options.database, species, seededAt);
   }
 
+  const finalContiguousSeededPrefix = await getContiguousSeededPrefix(options.database);
+  if (finalContiguousSeededPrefix >= upstreamTotal) {
+    await markSuccessfulSeedSync(options.database, resolveNow().toISOString());
+  }
+
   return { saved };
+}
+
+function isCooldownActive(
+  lastSuccessfulSeedSyncAt: string | null,
+  cooldownDays: number,
+  now: Date,
+): boolean {
+  if (lastSuccessfulSeedSyncAt == null) {
+    return false;
+  }
+
+  const lastSuccessfulSeedSyncDate = new Date(lastSuccessfulSeedSyncAt);
+  const cooldownMilliseconds = cooldownDays * 24 * 60 * 60 * 1000;
+
+  return now.getTime() - lastSuccessfulSeedSyncDate.getTime() < cooldownMilliseconds;
 }

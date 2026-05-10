@@ -3,34 +3,53 @@ import { eq } from 'drizzle-orm';
 
 import { integrationTest as test } from '@/tests/fixtures';
 import { pokemonSpecies } from '@/db/schema';
-import { countPokemonSpecies, getExistingSpeciesIds, insertPokemonSpecies } from './repository';
-import { buildSpeciesListingUrl, collectPokemonSpeciesSummaries } from './pokeapi';
+import {
+  countPokemonSpecies,
+  getExistingSpeciesIds,
+  getLastSuccessfulSeedSyncAt,
+  insertPokemonSpecies,
+} from './repository';
+import {
+  buildSpeciesListingUrl,
+  collectPokemonSpeciesSummaries,
+  fetchPokemonSpeciesPage,
+} from './pokeapi';
 import { seedPokedex } from './service';
 
+const TEST_UPSTREAM_SPECIES_COUNT = 45;
+const EXTRA_DEPS = {};
+
 function countDetailFetches(apiMock: { requestUrls(): string[] }): number {
-  return apiMock.requestUrls().filter((url) => url.includes('/pokemon-species/')).length;
+  return apiMock
+    .requestUrls()
+    .filter((requestUrl) =>
+      new URL(requestUrl).pathname.match(/^\/api\/v2\/pokemon-species\/\d+\/?$/),
+    ).length;
 }
 
 describe('seedPokedex', () => {
-  test('seeds the first forty species and becomes a no-op on rerun', async ({
+  test('seeds all reported upstream species and becomes a cooldown no-op on rerun', async ({
     apiMock,
     database,
     seedDependencies,
   }) => {
-    const firstRun = await seedPokedex({ ...seedDependencies, database });
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
+    const firstRun = await seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database });
 
-    expect(firstRun).toEqual({ saved: 40 });
-    expect(apiMock.fetch).toHaveBeenCalledTimes(42);
-    expect(countDetailFetches(apiMock)).toBe(40);
-    await expect(countPokemonSpecies(database)).resolves.toBe(40);
+    expect(firstRun).toEqual({ saved: TEST_UPSTREAM_SPECIES_COUNT });
+    expect(apiMock.fetch).toHaveBeenCalledTimes(48);
+    expect(countDetailFetches(apiMock)).toBe(TEST_UPSTREAM_SPECIES_COUNT);
+    await expect(countPokemonSpecies(database)).resolves.toBe(TEST_UPSTREAM_SPECIES_COUNT);
+    await expect(getLastSuccessfulSeedSyncAt(database)).resolves.not.toBeNull();
 
     apiMock.reset();
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
 
-    const secondRun = await seedPokedex({ ...seedDependencies, database });
+    const secondRun = await seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database });
 
     expect(secondRun).toEqual({ saved: 0 });
-    expect(apiMock.fetch).not.toHaveBeenCalled();
-    await expect(countPokemonSpecies(database)).resolves.toBe(40);
+    expect(apiMock.fetch).toHaveBeenCalledTimes(1);
+    await expect(countPokemonSpecies(database)).resolves.toBe(TEST_UPSTREAM_SPECIES_COUNT);
   });
 
   test('resumes from the contiguous prefix and skips already-seeded noncontiguous ids', async ({
@@ -38,6 +57,7 @@ describe('seedPokedex', () => {
     database,
     seedDependencies,
   }) => {
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
     await database.db.insert(pokemonSpecies).values(
       [...Array.from({ length: 18 }, (_, index) => index + 1), 25].map((id) => ({
         id,
@@ -53,13 +73,13 @@ describe('seedPokedex', () => {
       })),
     );
 
-    const result = await seedPokedex({ ...seedDependencies, database });
+    const result = await seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database });
 
-    expect(result).toEqual({ saved: 21 });
-    expect(apiMock.fetch).toHaveBeenCalledWith(buildSpeciesListingUrl(18));
+    expect(result).toEqual({ saved: TEST_UPSTREAM_SPECIES_COUNT - 19 });
+    expect(apiMock.fetch).toHaveBeenCalledWith(buildSpeciesListingUrl(20));
     expect(apiMock.fetch).not.toHaveBeenCalledWith('https://pokeapi.co/api/v2/pokemon-species/25/');
-    expect(countDetailFetches(apiMock)).toBe(21);
-    await expect(countPokemonSpecies(database)).resolves.toBe(40);
+    expect(countDetailFetches(apiMock)).toBe(TEST_UPSTREAM_SPECIES_COUNT - 19);
+    await expect(countPokemonSpecies(database)).resolves.toBe(TEST_UPSTREAM_SPECIES_COUNT);
 
     await expect(
       database.db
@@ -76,7 +96,7 @@ describe('seedPokedex', () => {
   }) => {
     apiMock.mockUrl(buildSpeciesListingUrl(0), new Response('upstream failed', { status: 500 }));
 
-    await expect(seedPokedex({ ...seedDependencies, database })).rejects.toThrow(
+    await expect(seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database })).rejects.toThrow(
       `Failed to fetch ${buildSpeciesListingUrl(0)}: 500`,
     );
     await expect(countPokemonSpecies(database)).resolves.toBe(0);
@@ -87,6 +107,7 @@ describe('seedPokedex', () => {
     database,
     seedDependencies,
   }) => {
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
     await database.db.insert(pokemonSpecies).values({
       id: 25,
       name: 'pokemon-25',
@@ -116,11 +137,12 @@ describe('seedPokedex', () => {
       ),
     );
 
-    const result = await seedPokedex({ ...seedDependencies, database });
+    const result = await seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database });
 
     expect(result).toEqual({ saved: 0 });
     expect(countDetailFetches(apiMock)).toBe(0);
     await expect(countPokemonSpecies(database)).resolves.toBe(1);
+    await expect(getLastSuccessfulSeedSyncAt(database)).resolves.not.toBeNull();
   });
 
   test('handles empty repository and duplicate insert edge cases', async ({ database }) => {
@@ -148,6 +170,81 @@ describe('seedPokedex', () => {
       0,
     );
   });
+
+  test('allows reseeding after the cooldown expires', async ({ apiMock, database }) => {
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
+    const now = new Date('2026-05-10T08:00:00.000Z');
+    const seedDependencies = {
+      fetch: apiMock.fetch,
+      cooldownDays: 1,
+      now: () => now,
+    };
+
+    await expect(seedPokedex({ ...seedDependencies, database })).resolves.toEqual({
+      saved: TEST_UPSTREAM_SPECIES_COUNT,
+    });
+
+    apiMock.reset();
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
+    const expiredNow = new Date('2026-05-11T08:00:00.001Z');
+
+    await expect(
+      seedPokedex({ ...seedDependencies, database, now: () => expiredNow }),
+    ).resolves.toEqual({ saved: 0 });
+    expect(apiMock.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not start the cooldown after a failed run', async ({ apiMock, database }) => {
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
+    const now = new Date('2026-05-10T08:00:00.000Z');
+    const seedDependencies = {
+      fetch: apiMock.fetch,
+      cooldownDays: 1,
+      now: () => now,
+    };
+    apiMock.mockUrl(
+      'https://pokeapi.co/api/v2/pokemon-species/3/',
+      new Response('upstream failed', { status: 500 }),
+    );
+
+    await expect(seedPokedex({ ...seedDependencies, database })).rejects.toThrow(
+      'Failed to fetch https://pokeapi.co/api/v2/pokemon-species/3/: 500',
+    );
+    await expect(getLastSuccessfulSeedSyncAt(database)).resolves.toBeNull();
+
+    apiMock.reset();
+    apiMock.setTotalSpeciesCount(TEST_UPSTREAM_SPECIES_COUNT);
+
+    await expect(seedPokedex({ ...seedDependencies, database })).resolves.toEqual({
+      saved: TEST_UPSTREAM_SPECIES_COUNT,
+    });
+  });
+
+  test('does not mark a successful sync when the upstream listing is still incomplete', async ({
+    apiMock,
+    database,
+    seedDependencies,
+  }) => {
+    apiMock.mockUrl(
+      buildSpeciesListingUrl(0),
+      new Response(
+        JSON.stringify({
+          count: 3,
+          next: null,
+          previous: null,
+          results: [
+            { name: 'pokemon-1', url: 'https://pokeapi.co/api/v2/pokemon-species/1/' },
+            { name: 'pokemon-2', url: 'https://pokeapi.co/api/v2/pokemon-species/2/' },
+          ],
+        }),
+      ),
+    );
+
+    await expect(seedPokedex({ ...EXTRA_DEPS, ...seedDependencies, database })).resolves.toEqual({
+      saved: 2,
+    });
+    await expect(getLastSuccessfulSeedSyncAt(database)).resolves.toBeNull();
+  });
 });
 
 describe('collectPokemonSpeciesSummaries', () => {
@@ -155,21 +252,22 @@ describe('collectPokemonSpeciesSummaries', () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => {
       return new Response(
         JSON.stringify({
-          count: 5,
+          count: 22,
           next: null,
           previous: null,
           results: [
             { name: 'pokemon-20', url: 'https://pokeapi.co/api/v2/pokemon-species/20/' },
             { name: 'pokemon-21', url: 'https://pokeapi.co/api/v2/pokemon-species/21/' },
             { name: 'pokemon-21', url: 'https://pokeapi.co/api/v2/pokemon-species/21/' },
-            { name: 'pokemon-41', url: 'https://pokeapi.co/api/v2/pokemon-species/41/' },
+            { name: 'pokemon-23', url: 'https://pokeapi.co/api/v2/pokemon-species/23/' },
             { name: 'pokemon-22', url: 'https://pokeapi.co/api/v2/pokemon-species/22/' },
           ],
         }),
       );
     });
+    const firstPage = await fetchPokemonSpeciesPage(0, fetchImpl);
 
-    await expect(collectPokemonSpeciesSummaries(20, fetchImpl)).resolves.toEqual([
+    await expect(collectPokemonSpeciesSummaries(20, 22, firstPage, fetchImpl)).resolves.toEqual([
       {
         id: 21,
         name: 'pokemon-21',
@@ -181,7 +279,7 @@ describe('collectPokemonSpeciesSummaries', () => {
         url: 'https://pokeapi.co/api/v2/pokemon-species/22/',
       },
     ]);
-    expect(fetchImpl).toHaveBeenCalledWith(buildSpeciesListingUrl(20));
+    expect(fetchImpl).toHaveBeenCalledWith(buildSpeciesListingUrl(0));
   });
 
   test('fails when a species id cannot be determined from the upstream URL', async () => {
@@ -196,7 +294,7 @@ describe('collectPokemonSpeciesSummaries', () => {
       );
     });
 
-    await expect(collectPokemonSpeciesSummaries(0, fetchImpl)).rejects.toThrow(
+    await expect(fetchPokemonSpeciesPage(0, fetchImpl)).rejects.toThrow(
       'Could not determine species id from https://pokeapi.co/api/v2/pokemon-species/x/',
     );
   });

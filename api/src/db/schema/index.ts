@@ -3,4 +3,5 @@ export {
   pokemonSpeciesGenera,
   pokemonSpeciesNames,
   pokemonSpeciesPokedexNumbers,
+  seedSyncState,
 } from './pokemon-species';

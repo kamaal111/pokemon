@@ -61,3 +61,8 @@ export const pokemonSpeciesPokedexNumbers = sqliteTable(
     index('pokemon_species_pokedex_numbers_species_id_index').on(table.pokemonSpeciesId),
   ],
 );
+
+export const seedSyncState = sqliteTable('seed_sync_state', {
+  seedName: text('seed_name').primaryKey(),
+  lastSuccessfulSyncAt: text('last_successful_sync_at').notNull(),
+});

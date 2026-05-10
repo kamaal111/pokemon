@@ -12,6 +12,6 @@
     "[typescript]": {
       "editor.defaultFormatter": "oxc.oxc-vscode",
     },
-    "cSpell.words": ["pokeapi", "Pokedex"],
+    "cSpell.words": ["cooldown", "pokeapi", "Pokedex"],
   },
 }
