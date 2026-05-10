@@ -1,4 +1,4 @@
-import type { SeedDependencies } from './service';
+import type { SeedDependencies } from './service.ts';
 
 interface GetPokedexSeedDependenciesOptions {
   fetch?: typeof fetch;

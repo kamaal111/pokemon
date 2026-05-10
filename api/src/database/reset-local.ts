@@ -1,5 +1,5 @@
-import env from '@/env';
-import { resetLocalDatabase } from './local-reset';
+import env from '../env.ts';
+import { resetLocalDatabase } from './local-reset.ts';
 
 async function run(): Promise<void> {
   const { databasePath } = await resetLocalDatabase({

@@ -1,8 +1,8 @@
 import { HTTPException } from 'hono/http-exception';
 import type z from 'zod';
 
-import type { HonoContext } from './context';
-import { STATUS_CODES, type StatusCode } from './constants/http';
+import type { HonoContext } from './context.ts';
+import { STATUS_CODES, type StatusCode } from './constants/http.ts';
 
 type ExceptionContext = Pick<HonoContext, 'get'>;
 

@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 import url from 'node:url';
 
-import Database from './model';
-import type { DatabaseConfig } from './config';
+import Database from './model.ts';
+import type { DatabaseConfig } from './config.ts';
 
 const ENSURED_DATABASE_DIRECTORIES = new Set<string>();
 

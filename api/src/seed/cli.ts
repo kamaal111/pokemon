@@ -1,7 +1,7 @@
-import { getDatabaseConfig } from '@/database';
-import { getPokedexSeedDependencies } from './config';
-import { prepareDatabaseForPokedexSeed } from './prepare-database';
-import { seedPokedex } from './service';
+import { getDatabaseConfig } from '../database/index.ts';
+import { getPokedexSeedDependencies } from './config.ts';
+import { prepareDatabaseForPokedexSeed } from './prepare-database.ts';
+import { seedPokedex } from './service.ts';
 
 async function run() {
   const database = await prepareDatabaseForPokedexSeed(getDatabaseConfig());

@@ -1,8 +1,8 @@
 import z from 'zod';
 
-import { POKEAPI_POKEMON_SPECIES_URL, POKEAPI_SPECIES_PAGE_SIZE } from './constants';
-import type { NormalizedPokemonSpecies } from './types';
-import { normalizePokemonSpecies } from './normalize';
+import { POKEAPI_POKEMON_SPECIES_URL, POKEAPI_SPECIES_PAGE_SIZE } from './constants.ts';
+import type { NormalizedPokemonSpecies } from './types.ts';
+import { normalizePokemonSpecies } from './normalize.ts';
 
 interface PokemonSpeciesSummary {
   id: number;

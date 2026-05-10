@@ -1,3 +1,3 @@
-export { default as seedRouter } from './router';
-export { ROUTE_NAME as SEED_ROUTER_NAME } from './constants';
-export { getPokedexSeedDependencies } from './config';
+export { default as seedRouter } from './router.ts';
+export { ROUTE_NAME as SEED_ROUTER_NAME } from './constants.ts';
+export { getPokedexSeedDependencies } from './config.ts';

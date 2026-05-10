@@ -3,9 +3,9 @@ import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
 import pino from 'pino';
 
-import { REQUEST_ID_HEADER_NAME } from '@/constants/common';
-import type { HonoEnvironment } from '@/context';
-import { getLoggerBindings, getRequestLogger } from './http';
+import { REQUEST_ID_HEADER_NAME } from '../constants/common.ts';
+import type { HonoEnvironment } from '../context.ts';
+import { getLoggerBindings, getRequestLogger } from './http.ts';
 
 describe('http logging helpers', () => {
   test('initializes a request logger lazily when middleware has not set one', async () => {

@@ -12,15 +12,15 @@ const { createDatabaseMock, resetLocalDatabaseMock } = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/database', () => ({
+vi.mock('../database/index.ts', () => ({
   createDatabase: createDatabaseMock,
 }));
 
-vi.mock('@/database/local-reset', () => ({
+vi.mock('../database/local-reset.ts', () => ({
   resetLocalDatabase: resetLocalDatabaseMock,
 }));
 
-import { prepareDatabaseForPokedexSeed } from './prepare-database';
+import { prepareDatabaseForPokedexSeed } from './prepare-database.ts';
 
 const LOCAL_DATA_DIRECTORY_PATH = url.fileURLToPath(new URL('../../.data/', import.meta.url));
 

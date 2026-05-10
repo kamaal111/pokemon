@@ -23,8 +23,7 @@
     "oxfmt": "^0.48.0",
     "oxlint": "^1.63.0",
     "oxlint-tsgolint": "^0.22.1",
-    "sql-formatter": "^15.7.3",
-    "tsx": "^4.21.0"
+    "sql-formatter": "^15.7.3"
   },
   "lint-staged": {
     "**/*.{cjs,js,mjs,ts,tsx}": [

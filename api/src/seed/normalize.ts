@@ -1,4 +1,4 @@
-import type { NormalizedPokemonSpecies } from './types';
+import type { NormalizedPokemonSpecies } from './types.ts';
 
 interface PokemonSpeciesDetailInput {
   id: number;

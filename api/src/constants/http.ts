@@ -1,4 +1,4 @@
-import type { GetRecordValues } from '@/utils/type-utils';
+import type { GetRecordValues } from '../utils/type-utils.ts';
 
 export type StatusCode = GetRecordValues<typeof STATUS_CODES>;
 

@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import url from 'node:url';
 
-import { createDatabase } from './utils';
-import type { DatabaseConfig } from './config';
+import { createDatabase } from './utils.ts';
+import type { DatabaseConfig } from './config.ts';
 
 const REPOSITORY_ROOT_PATH = url.fileURLToPath(new URL('../../../', import.meta.url));
 

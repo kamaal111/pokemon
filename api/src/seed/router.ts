@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 
-import type { HonoEnvironment } from '@/context';
-import { databaseMiddleware, type DatabaseMiddlewareDependencies } from '@/database/middleware';
-import { allowedModes } from '@/middleware';
-import { SERVER_MODES } from '@/env';
-import seedPokedexRoute from './routes/seed-pokedex';
-import type { SeedDependencies } from './service';
+import type { HonoEnvironment } from '../context.ts';
+import { databaseMiddleware, type DatabaseMiddlewareDependencies } from '../database/middleware.ts';
+import { allowedModes } from '../middleware.ts';
+import { SERVER_MODES } from '../env.ts';
+import seedPokedexRoute from './routes/seed-pokedex.ts';
+import type { SeedDependencies } from './service.ts';
 
 export type SeedRouterDependencies = DatabaseMiddlewareDependencies & {
   pokedexSeedDependencies: SeedDependencies;

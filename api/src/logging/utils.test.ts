@@ -7,11 +7,11 @@ import pino from 'pino';
 import { describe, expect, test, vi } from 'vitest';
 import z from 'zod';
 
-import { REQUEST_ID_HEADER_NAME } from '@/constants/common';
-import type { HonoEnvironment } from '@/context';
-import { SERVER_MODES } from '@/env';
-import { InvalidPayload, InvalidValidation } from '@/exceptions';
-import loggingMiddleware from './middleware';
+import { REQUEST_ID_HEADER_NAME } from '../constants/common.ts';
+import type { HonoEnvironment } from '../context.ts';
+import { SERVER_MODES } from '../env.ts';
+import { InvalidPayload, InvalidValidation } from '../exceptions.ts';
+import loggingMiddleware from './middleware.ts';
 import {
   createServerLogger,
   getValidationIssuePaths,
@@ -22,7 +22,7 @@ import {
   logWarn,
   sanitizeLogRecord,
   serializeError,
-} from './utils';
+} from './utils.ts';
 
 function createSilentLogger() {
   const stream = new PassThrough();
@@ -160,7 +160,7 @@ describe('logging utilities', () => {
     vi.stubEnv('DEBUG', 'true');
     vi.stubEnv('MODE', SERVER_MODES.TEST);
 
-    await expect(import('./utils')).resolves.toMatchObject({
+    await expect(import('./utils.ts')).resolves.toMatchObject({
       createRequestLogger: expect.any(Function),
     });
 

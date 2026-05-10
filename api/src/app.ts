@@ -4,14 +4,14 @@ import { compress } from 'hono/compress';
 import { secureHeaders } from 'hono/secure-headers';
 import { etag } from 'hono/etag';
 
-import { loggingMiddleware, handleServerError } from './logging';
-import { REQUEST_ID_HEADER_NAME } from './constants/common';
-import type { HonoEnvironment } from './context';
-import { HEALTH_ROUTER_NAME, healthRouter } from './health';
-import { theWorld } from './middleware';
-import { SEED_ROUTER_NAME, seedRouter } from './seed';
-import type { SeedRouterDependencies } from './seed/router';
-import type { DatabaseMiddlewareDependencies } from './database/middleware';
+import { loggingMiddleware, handleServerError } from './logging/index.ts';
+import { REQUEST_ID_HEADER_NAME } from './constants/common.ts';
+import type { HonoEnvironment } from './context.ts';
+import { HEALTH_ROUTER_NAME, healthRouter } from './health/index.ts';
+import { theWorld } from './middleware.ts';
+import { SEED_ROUTER_NAME, seedRouter } from './seed/index.ts';
+import type { SeedRouterDependencies } from './seed/router.ts';
+import type { DatabaseMiddlewareDependencies } from './database/middleware.ts';
 
 export type AppDependencies = DatabaseMiddlewareDependencies & SeedRouterDependencies;
 
