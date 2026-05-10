@@ -21,7 +21,18 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'dist/'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'src/tests/**',
+        'src/db/schema/**',
+        'src/index.ts',
+        'src/server.ts',
+        'src/seed/cli.ts',
+        'src/database/reset-local.ts',
+      ],
+      thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
     },
   },
 });

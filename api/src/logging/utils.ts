@@ -105,7 +105,7 @@ export function logError(
   logger[level](sanitizeLogRecord(mergedFields), message);
 }
 
-function serializeError(error: unknown): Record<string, unknown> | undefined {
+export function serializeError(error: unknown): Record<string, unknown> | undefined {
   if (error == null) {
     return undefined;
   }
@@ -192,7 +192,7 @@ export const handleServerError = ((err, ctx: HonoContext) => {
   );
 }) satisfies ErrorHandler<HonoEnvironment>;
 
-function getValidationIssuePaths(validations: ValidationIssue[]) {
+export function getValidationIssuePaths(validations: ValidationIssue[]) {
   return validations.map((issue) => {
     if (
       issue == null ||
@@ -209,10 +209,10 @@ function getValidationIssuePaths(validations: ValidationIssue[]) {
 }
 
 interface ValidationIssue {
-  path?: (string | number)[];
+  path?: (string | number)[] | null;
 }
 
-function getValidationIssues(context: unknown): ValidationIssue[] {
+export function getValidationIssues(context: unknown): ValidationIssue[] {
   if (context == null || typeof context !== 'object' || !('validations' in context)) {
     return [];
   }
@@ -300,7 +300,7 @@ function sanitizeArrayItem(value: unknown): LogScalar | undefined {
   return undefined;
 }
 
-function createServerLogger(options: CreateLoggerOptions = {}) {
+export function createServerLogger(options: CreateLoggerOptions = {}) {
   const destination = options.destination ?? createDestination(options.pretty ?? IS_DEBUG);
   const loggerOptions = createLoggerOptions(
     options.level ?? env.LOG_LEVEL,

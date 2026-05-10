@@ -37,9 +37,13 @@ export function getRequestLogger(c: HonoContext) {
   return bindAuthenticatedUserIdFromContext(c, existingLogger);
 }
 
-function getLoggerBindings(logger: Logger): Record<string, unknown> {
+export function getLoggerBindings(logger: { bindings(): unknown }): Record<string, unknown> {
   const bindings = logger.bindings();
-  return bindings != null && typeof bindings === 'object' ? bindings : {};
+  return isRecord(bindings) ? bindings : {};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function bindAuthenticatedUserIdFromContext(c: HonoContext, logger: Logger) {
