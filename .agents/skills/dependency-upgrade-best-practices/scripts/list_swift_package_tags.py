@@ -72,11 +72,9 @@ def main() -> int:
     args = parse_args()
     now = datetime.now(timezone.utc)
     minimum_age = timedelta(days=args.min_age_days)
+    repository_path = Path(args.repository)
 
-    with tempfile.TemporaryDirectory(prefix="swift-tag-audit-") as temp_dir:
-        repo_dir = Path(temp_dir)
-        run_git(["init"], repo_dir)
-        run_git(["fetch", "--force", "--tags", args.repository], repo_dir)
+    if repository_path.exists():
         output = run_git(
             [
                 "for-each-ref",
@@ -84,8 +82,22 @@ def main() -> int:
                 "--sort=-creatordate",
                 "--format=%(refname:strip=2)|%(creatordate:iso8601-strict)",
             ],
-            repo_dir,
+            repository_path.resolve(),
         )
+    else:
+        with tempfile.TemporaryDirectory(prefix="swift-tag-audit-") as temp_dir:
+            repo_dir = Path(temp_dir)
+            run_git(["init"], repo_dir)
+            run_git(["fetch", "--force", "--tags", args.repository], repo_dir)
+            output = run_git(
+                [
+                    "for-each-ref",
+                    "refs/tags",
+                    "--sort=-creatordate",
+                    "--format=%(refname:strip=2)|%(creatordate:iso8601-strict)",
+                ],
+                repo_dir,
+            )
 
     rows: list[tuple[datetime, str, int, bool]] = []
     for line in output.splitlines():

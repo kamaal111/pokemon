@@ -80,6 +80,8 @@ Prefer the repository's command runner when one exists, such as `just`, `make`, 
 - Reuse the repository's existing app-construction, dependency-injection, or service-factory patterns when available.
 - Reuse shared helpers for authentication, database setup, fixtures, and teardown.
 - Prefer custom test fixtures over ad hoc `beforeEach` blocks when setup needs to hand tests reusable resources such as apps, database handles, sessions, or mock controllers.
+- In this repository, prefer the `api/src/tests/fixtures.ts` integration fixture for API route, middleware, and error-path coverage instead of building bespoke Hono apps inside test files.
+- When a real route can exercise middleware or exception behavior, cover it through that route first and only fall back to direct constructor or helper tests for code paths that genuinely have no fixture-backed route entrypoint.
 - Assert response status, payload shape, side effects, and authorization behavior.
 - Assert clear server failures for missing prerequisite data when the contract would otherwise look valid but be semantically wrong.
 - Validate setup operations before using their outputs in later assertions.
