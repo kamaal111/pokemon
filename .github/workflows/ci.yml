@@ -8,7 +8,6 @@ on:
 
 env:
   PNPM_VERSION: 10.33.0
-  PYTHON_VERSION: 3.14
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
@@ -92,7 +91,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version-file: .python-version
 
       - name: Set up just
         uses: extractions/setup-just@v4

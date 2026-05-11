@@ -5,6 +5,8 @@ PN := "pnpm"
 PNR := PN + " run"
 PNX := PN + " exec"
 TSX := PNX + " tsx"
+UV := "uv"
+UVR := UV + " run"
 
 API_PORT := env("API_PORT", "8080")
 
@@ -22,6 +24,11 @@ dev-api: prepare-api
     export MODE="api"
 
     {{ PNR }} dev
+
+# Run dev ocr
+[working-directory("ocr")]
+dev-ocr: prepare-ocr
+    {{ UVR }} src/main.py
 
 # Seed the pokedex SQLite database
 [working-directory("api")]
@@ -157,12 +164,15 @@ format-check-api:
 # Prepare project to work with
 prepare: install-modules prepare-api
 
+# Prepare ocr
+prepare-ocr: install-modules-ocr
+
 # Prepare api
 prepare-api: install-modules-api
 
 # Prepare api for Linux CI
 [linux]
-prepare-api-ci: install-modules-ci
+prepare-api-ci: install-node-modules-ci
 
 # Bootstrap project
 bootstrap: prepare bootstrap-api
@@ -183,16 +193,31 @@ code:
 _ready-tasks: quality test
 
 [private]
-install-modules-ci:
-    pnpm install --frozen-lockfile
-    pnpm --dir api install --frozen-lockfile --ignore-workspace
+[parallel]
+install-modules-ci: install-node-modules-ci install-python-modules
 
 [private]
-install-modules:
+install-node-modules-ci:
+    {{ PN }} install --frozen-lockfile
+    {{ PN }} --dir api install --frozen-lockfile --ignore-workspace
+
+[private]
+[parallel]
+install-modules: install-node-modules install-python-modules
+
+[private]
+install-node-modules:
     #!/usr/bin/env zsh
 
     . ~/.zshrc || true
     echo "Y" | {{ PN }} i
+
+[private]
+install-modules-ocr: install-python-modules
+
+[private]
+install-python-modules:
+    {{ UV }} sync
 
 [private]
 [working-directory("api")]

@@ -14,10 +14,6 @@
   - For docs-only changes, such as `AGENTS.md`, `README.md`, or skill files, do not run `just ready` unless the user explicitly asks for it.
 - **NEVER claim code changes are done until `just ready` passes**
   - If `just ready` fails, fix the issues and rerun it until it succeeds.
-- **ALWAYS include proof of work in the final response**
-  - Tell the user exactly how you validated the work.
-  - List the commands, builds, tests, or manual checks you ran.
-  - If you skipped validation, say so explicitly and why.
 - **ALWAYS use `pnpm` for Node.js work**
   - Do not use `npm` or `yarn` anywhere in this repository.
 - **ALWAYS use root `just` commands when they exist**
@@ -47,6 +43,18 @@
   - Treat any uncertainty about ownership as a real security bug, not a follow-up cleanup.
 - **NEVER hide required dependency failures behind misleading success responses**
   - If required derived data is missing, fail clearly instead of returning a superficially valid response that breaks downstream assumptions.
+
+## Final Response Verification Requirements
+
+- **ALWAYS explain how you understood the goal in the final response**
+  - State the outcome you believed the requester wanted so they can understand why you took the actions you took.
+- **ALWAYS state any doubts, uncertainties, or issues discovered while working**
+  - Do not hide concerns, tradeoffs, or problems under the rug. Surface them clearly so the requester can understand why certain actions were taken.
+- **ALWAYS end the final response with complete proof of work showing the change works as expected**
+  - Tell the user exactly how you validated the work.
+  - Include every command, build, test, and manual check used as proof.
+  - Be certain the verification is strong enough to prove the change works as expected, not just that code ran without obvious errors.
+  - If you skipped validation, say so explicitly and why.
 
 ## Verification Commands
 
