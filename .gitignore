@@ -365,3 +365,4 @@ xcuserdata/
 scratch.*
 *.sqlite
 api/.data/
+debug

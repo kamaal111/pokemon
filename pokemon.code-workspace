@@ -4,6 +4,9 @@
       "path": "api",
     },
     {
+      "path": "ocr",
+    },
+    {
       "path": ".",
       "name": "root",
     },
@@ -12,6 +15,14 @@
     "[typescript]": {
       "editor.defaultFormatter": "oxc.oxc-vscode",
     },
-    "cSpell.words": ["cooldown", "pokeapi", "Pokedex"],
+    "cSpell.words": [
+      "charmeleon",
+      "cooldown",
+      "denoised",
+      "grayscaled",
+      "pokeapi",
+      "Pokedex",
+      "snorlax",
+    ],
   },
 }
