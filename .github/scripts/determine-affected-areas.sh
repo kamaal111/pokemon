@@ -13,6 +13,7 @@ source "$config_file"
 if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == "main" ]]
 then
   echo "api=true" >> "$GITHUB_OUTPUT"
+  echo "ocr=true" >> "$GITHUB_OUTPUT"
   echo "app=true" >> "$GITHUB_OUTPUT"
   echo "skills=true" >> "$GITHUB_OUTPUT"
   echo "Running all jobs for pushes to main."
@@ -36,6 +37,7 @@ else
 fi
 
 api=false
+ocr=false
 app=false
 skills=false
 
@@ -50,6 +52,9 @@ do
     $API)
       api=true
       ;;
+    $OCR)
+      ocr=true
+      ;;
     $SKILLS)
       skills=true
       ;;
@@ -57,4 +62,5 @@ do
 done
 
 echo "api=$api" >> "$GITHUB_OUTPUT"
+echo "ocr=$ocr" >> "$GITHUB_OUTPUT"
 echo "skills=$skills" >> "$GITHUB_OUTPUT"
