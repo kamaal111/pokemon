@@ -16,6 +16,8 @@
   - If `just ready` fails, fix the issues and rerun it until it succeeds.
 - **ALWAYS use `pnpm` for Node.js work**
   - Do not use `npm` or `yarn` anywhere in this repository.
+- **ALWAYS use `uv` for Python work**
+  - If you need to run Python code with the project's required packages, run the script with `uv run`.
 - **ALWAYS use root `just` commands when they exist**
   - Prefer repo recipes over custom command sequences for build, test, quality, database, and OpenAPI workflows.
 - **NEVER start the server directly or as a background process**

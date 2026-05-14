@@ -1,4 +1,12 @@
 {
+  "terminal": {
+    "detect_venv": {
+      "on": {
+        "directories": [".venv"],
+        "activate_script": "default"
+      }
+    }
+  },
   "languages": {
     "JavaScript": {
       "format_on_save": "on",
@@ -83,6 +91,9 @@
           "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
         }
       }
+    },
+    "Python": {
+      "language_servers": ["pyright", "!basedpyright", "..."]
     }
   }
 }

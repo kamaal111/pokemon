@@ -4,7 +4,6 @@ set dotenv-load
 PN := "pnpm"
 PNR := PN + " run"
 PNX := PN + " exec"
-TSX := PNX + " tsx"
 UV := "uv"
 UVR := UV + " run"
 
@@ -35,12 +34,17 @@ dev-ocr: prepare-ocr
 seed-pokedex:
     {{ PNR }} seed:pokedex
 
+# Print the pnpm version declared in package.json
+pnpm-version:
+    bash scripts/pnpm-version.bash
+
 # Generate a database migration from the Drizzle schema. Optional: just db-generate create_pokemon_types
 [working-directory("api")]
 db-generate name="":
     #!/usr/bin/env zsh
 
-    if [[ -n "{{ name }}" ]]; then
+    if [[ -n "{{ name }}" ]]
+    then
         {{ PNX }} drizzle-kit generate --name "{{ name }}"
     else
         {{ PNR }} db:generate
@@ -83,6 +87,9 @@ ready: _ready-tasks
 [parallel]
 ready-api: quality-api test-api
 
+# Run all verification checks for ocr
+ready-ocr: quality-ocr
+
 # Compile api
 [working-directory("api")]
 compile-api:
@@ -99,7 +106,7 @@ test-api:
 
 # Run dependency-upgrade skill script tests
 test-skills:
-    python3 -m unittest discover -s .agents/skills/dependency-upgrade-best-practices/tests -p 'test_*.py'
+    {{ UVR }} -m unittest discover -s .agents/skills/dependency-upgrade-best-practices/tests -p 'test_*.py'
 
 # Run quality checks
 [parallel]
@@ -109,17 +116,27 @@ quality: lint format-check typecheck
 [parallel]
 quality-api: lint-api lint-sql format-check-api format-sql typecheck-api
 
+# Run quality checks for ocr
+[parallel]
+quality-ocr: lint-ocr format-check-ocr typecheck-ocr
+
 # Type check
-typecheck: typecheck-api
+[parallel]
+typecheck: typecheck-api typecheck-ocr
 
 # Type check api
 [working-directory("api")]
 typecheck-api:
     {{ PNR }} typecheck
 
+# Type check ocr
+[working-directory("ocr")]
+typecheck-ocr:
+    {{ UVR }} ty check
+
 # Lint the project
 [parallel]
-lint: lint-js lint-sql
+lint: lint-js lint-sql lint-ocr
 
 # Lint js code
 lint-js:
@@ -133,9 +150,14 @@ lint-sql:
 lint-api:
     {{ PNR }} lint:api
 
+# Lint ocr code
+[working-directory("ocr")]
+lint-ocr:
+    {{ UVR }} ruff check src
+
 # Format code
 [parallel]
-format: format-js format-sql
+format: format-js format-sql format-ocr
 
 # Format js code
 format-js:
@@ -145,9 +167,14 @@ format-js:
 format-sql:
     {{ PNR }} format:sql
 
+# Format ocr code
+[working-directory("ocr")]
+format-ocr:
+    {{ UVR }} ruff format src
+
 # Check code formatting
 [parallel]
-format-check: format-check-js format-check-sql
+format-check: format-check-js format-check-sql format-check-ocr
 
 # Check js code formatting
 format-check-js:
@@ -160,6 +187,11 @@ format-check-sql:
 # Check api code formatting
 format-check-api:
     {{ PNR }} format:check:api
+
+# Check ocr code formatting
+[working-directory("ocr")]
+format-check-ocr:
+    {{ UVR }} ruff format --check src
 
 # Prepare project to work with
 prepare: install-modules prepare-api
@@ -199,7 +231,12 @@ install-modules-ci: install-node-modules-ci install-python-modules
 [private]
 install-node-modules-ci:
     {{ PN }} install --frozen-lockfile
-    {{ PN }} --dir api install --frozen-lockfile --ignore-workspace
+    just install-modules-api-ci
+
+[private]
+[working-directory("api")]
+install-modules-api-ci:
+    {{ PN }} install --frozen-lockfile
 
 [private]
 [parallel]

@@ -15,7 +15,13 @@ dev = [
   "paddlepaddle>=3.3.1",
   "pillow>=12.2.0",
   "ruff>=0.15.12",
+  "ty>=0.0.35",
 ]
 
 [tool.uv.workspace]
 members = ["ocr"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"

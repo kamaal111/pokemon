@@ -11,3 +11,8 @@ dependencies = [
   "paddlepaddle>=3.3.1",
   "pillow>=12.2.0",
 ]
+
+[tool.pyright]
+venvPath = ".."
+venv = ".venv"
+pythonVersion = "3.13"
