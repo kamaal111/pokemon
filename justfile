@@ -81,14 +81,19 @@ db-reseed-local: db-reset-local
     {{ PNR }} seed:pokedex
 
 # Run all verification checks
-ready: _ready-tasks
+[parallel]
+ready: quality test
+
+# Run all heavy verification checks
+[parallel]
+heavy: quality test-heavy
 
 # Run all verification checks for the api
 [parallel]
 ready-api: quality-api test-api
 
 # Run all verification checks for ocr
-ready-ocr: quality-ocr
+ready-ocr: quality-ocr test-ocr
 
 # Compile api
 [working-directory("api")]
@@ -99,10 +104,19 @@ compile-api:
 [parallel]
 test: test-api test-skills
 
+# Run heavy tests
+[parallel]
+test-heavy: test-api test-ocr test-skills
+
 # Run api tests
 [working-directory("api")]
 test-api:
     {{ PNR }} test
+
+# Run ocr tests
+[working-directory("ocr")]
+test-ocr:
+    {{ UVR }} pytest -vv --durations=0 tests
 
 # Run dependency-upgrade skill script tests
 test-skills:
@@ -132,7 +146,7 @@ typecheck-api:
 # Type check ocr
 [working-directory("ocr")]
 typecheck-ocr:
-    {{ UVR }} ty check
+    {{ UVR }} ty check src tests
 
 # Lint the project
 [parallel]
@@ -153,7 +167,7 @@ lint-api:
 # Lint ocr code
 [working-directory("ocr")]
 lint-ocr:
-    {{ UVR }} ruff check src
+    {{ UVR }} ruff check src tests
 
 # Format code
 [parallel]
@@ -170,7 +184,7 @@ format-sql:
 # Format ocr code
 [working-directory("ocr")]
 format-ocr:
-    {{ UVR }} ruff format src
+    {{ UVR }} ruff format src tests
 
 # Check code formatting
 [parallel]
@@ -191,7 +205,7 @@ format-check-api:
 # Check ocr code formatting
 [working-directory("ocr")]
 format-check-ocr:
-    {{ UVR }} ruff format --check src
+    {{ UVR }} ruff format --check src tests
 
 # Prepare project to work with
 prepare: install-modules prepare-api
@@ -219,10 +233,6 @@ z:
 # Open project in vscode
 code:
     code pokemon.code-workspace
-
-[private]
-[parallel]
-_ready-tasks: quality test
 
 [private]
 [parallel]
