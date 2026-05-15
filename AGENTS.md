@@ -29,6 +29,8 @@
   - Do not use `as Type` or `<Type>value`.
 - **ALWAYS use the `testing-best-practices` skill for test changes**
   - Apply this skill whenever writing, maintaining, or modifying tests.
+- **ALWAYS use the `commit-message-best-practices` skill for commit messages**
+  - Apply this skill whenever drafting, refining, or reusing commit text.
 - **ALWAYS use the `typescript-server-best-practices` skill for TypeScript server work**
   - Apply this skill whenever implementing, maintaining, or refactoring server-side TypeScript code.
 - **ALWAYS use the `dependency-upgrade-best-practices` skill for dependency updates**

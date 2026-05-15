@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
+import time
 import unittest
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -32,6 +35,22 @@ def run_python_script(script: Path, *args: str) -> subprocess.CompletedProcess[s
 def utc_zulu(days_ago: int) -> str:
     timestamp = datetime.now(timezone.utc) - timedelta(days=days_ago)
     return timestamp.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+@contextmanager
+def temporary_directory_with_cleanup_retry() -> Path:
+    temp_dir = Path(tempfile.mkdtemp())
+    try:
+        yield temp_dir
+    finally:
+        for attempt in range(5):
+            try:
+                shutil.rmtree(temp_dir)
+                break
+            except OSError as error:
+                if error.errno != 66 or attempt == 4:
+                    raise
+                time.sleep(0.2)
 
 
 class ListNpmVersionsTests(unittest.TestCase):
@@ -120,6 +139,34 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+        subprocess.run(
+            ["git", "config", "gc.auto", "0"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "config", "gc.autoDetach", "false"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "config", "maintenance.auto", "false"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "config", "maintenance.autoDetach", "false"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
     def commit_and_tag(
         self,
@@ -138,6 +185,7 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
         iso_timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S+0000")
         env["GIT_AUTHOR_DATE"] = iso_timestamp
         env["GIT_COMMITTER_DATE"] = iso_timestamp
+        env["GIT_DISABLE_REPO_GC"] = "1"
 
         subprocess.run(
             ["git", "add", filename],
@@ -165,8 +213,8 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
         )
 
     def test_prefers_newest_eligible_stable_tag_using_default_policy(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir) / "swift-package"
+        with temporary_directory_with_cleanup_retry() as temp_dir:
+            repo = temp_dir / "swift-package"
             repo.mkdir()
             self.init_repo(repo)
             self.commit_and_tag(
@@ -214,8 +262,8 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
         self.assertNotIn("release-candidate", result.stdout)
 
     def test_includes_prereleases_when_requested(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir) / "swift-package"
+        with temporary_directory_with_cleanup_retry() as temp_dir:
+            repo = temp_dir / "swift-package"
             repo.mkdir()
             self.init_repo(repo)
             self.commit_and_tag(repo, "Package.swift", "// stable\n", 8, "1.0.0")
@@ -234,8 +282,8 @@ class ListSwiftPackageTagsTests(unittest.TestCase):
         self.assertIn("1.1.0-beta.1", result.stdout)
 
     def test_reads_tags_from_dirty_local_repo(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo = Path(temp_dir) / "swift-package"
+        with temporary_directory_with_cleanup_retry() as temp_dir:
+            repo = temp_dir / "swift-package"
             repo.mkdir()
             self.init_repo(repo)
             self.commit_and_tag(repo, "Package.swift", "// stable\n", 8, "1.0.0")
