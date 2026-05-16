@@ -12,6 +12,7 @@
 
 /* Begin PBXFileReference section */
 		2CC241482FB8A9C100B90F20 /* Pokemon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pokemon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2CC6F8B02FB8F266009E001D /* Pokemon.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Pokemon.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -19,6 +20,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				PokemonApp,
+				PokemonFeatures,
 			);
 			target = 2CC241472FB8A9C100B90F20 /* Pokemon */;
 		};
@@ -55,6 +57,7 @@
 		2CC2413F2FB8A9C100B90F20 = {
 			isa = PBXGroup;
 			children = (
+				2CC6F8B02FB8F266009E001D /* Pokemon.xctestplan */,
 				2CC241732FB8B0A600B90F20 /* Frameworks */,
 				2CC241702FB8AFDF00B90F20 /* Modules */,
 				2CC2414A2FB8A9C100B90F20 /* Pokemon */,
@@ -128,6 +131,9 @@
 			);
 			mainGroup = 2CC2413F2FB8A9C100B90F20;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2CC241492FB8A9C100B90F20 /* Products */;
 			projectDirPath = "";
@@ -296,7 +302,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -334,7 +340,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -379,9 +385,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Modules/PokemonApp;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		2CC241742FB8B0A600B90F20 /* PokemonApp */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */;
 			productName = PokemonApp;
 		};
 /* End XCSwiftPackageProductDependency section */
