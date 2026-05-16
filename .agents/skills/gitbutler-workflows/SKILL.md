@@ -24,6 +24,14 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 6. Push with `but push <branch>`.
 7. Open or update the review with `but pr new <branch>` when GitButler forge auth is configured.
 
+## Setup And Access
+
+- Do not run `but setup` routinely. In normal local usage, GitButler setup should only be needed once per repository.
+- Treat `but status -f` as the first health check. If it can read branch and workspace state, prefer proceeding directly with the requested GitButler mutation.
+- If a write command such as `but stage`, `but commit`, `but amend`, or `but reword` fails with errors like `unable to open database file`, `Could not create named temp file`, or similar workspace database/temp-file failures, first suspect sandbox or filesystem permissions rather than missing setup.
+- In that case, retry the same command with the required elevated access before reaching for `but setup`.
+- Use `but setup` only when there is evidence the repository is not actually registered or configured in GitButler, or when a retry still indicates a genuine setup problem.
+
 ## Branching Rules
 
 - Prefer one virtual branch per user-visible task.
@@ -37,7 +45,8 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 - Amend the change into the existing commit with `but amend <file-id> <commit-id>` or the equivalent `but rub <file-id> <commit-id>`.
 - For commit-message-only rewrites, prefer `but reword <sha> -m "<message>"`.
 - Use `but reword <sha>` without `-m` when you want to edit the message in an editor and let GitButler rebase dependent work automatically.
-- If `but reword` fails because GitButler cannot open the workspace database or create temporary files, run `but setup` and retry once.
+- If `but reword` fails because GitButler cannot open the workspace database or create temporary files, retry with elevated access first.
+- Only run `but setup` after that when the failure still points to actual missing repository setup.
 - If GitButler still cannot complete the rewrite, stop and surface the failure clearly instead of silently switching to plain Git history edits.
 - After rewriting a pushed commit, push the branch again and expect a force update.
 

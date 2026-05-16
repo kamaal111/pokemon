@@ -95,6 +95,9 @@ ready-api: quality-api test-api
 # Run all verification checks for ocr
 ready-ocr: quality-ocr test-ocr
 
+# Run all verification checks for app
+ready-app: quality-app test-app
+
 # Compile api
 [working-directory("api")]
 compile-api:
@@ -102,11 +105,11 @@ compile-api:
 
 # Run tests
 [parallel]
-test: test-api test-skills
+test: test-api test-skills test-app
 
 # Run heavy tests
 [parallel]
-test-heavy: test-api test-ocr test-skills
+test-heavy: test test-ocr
 
 # Run api tests
 [working-directory("api")]
@@ -122,6 +125,10 @@ test-ocr:
 test-skills:
     {{ UVR }} -m unittest discover -s .agents/skills/dependency-upgrade-best-practices/tests -p 'test_*.py'
 
+# Run app tests
+test-app:
+    echo "Not testing app yet"
+
 # Run quality checks
 [parallel]
 quality: lint format-check typecheck
@@ -133,6 +140,9 @@ quality-api: lint-api lint-sql format-check-api format-sql typecheck-api
 # Run quality checks for ocr
 [parallel]
 quality-ocr: lint-ocr format-check-ocr typecheck-ocr
+
+# Run quality checks for app
+quality-app: format-check-app
 
 # Type check
 [parallel]
@@ -171,7 +181,7 @@ lint-ocr:
 
 # Format code
 [parallel]
-format: format-js format-sql format-ocr
+format: format-js format-sql format-ocr format-app
 
 # Format js code
 format-js:
@@ -186,9 +196,14 @@ format-sql:
 format-ocr:
     {{ UVR }} ruff format src tests
 
+# Format app code
+[working-directory("app")]
+format-app:
+    swift format --in-place -r .
+
 # Check code formatting
 [parallel]
-format-check: format-check-js format-check-sql format-check-ocr
+format-check: format-check-js format-check-sql format-check-ocr format-check-app
 
 # Check js code formatting
 format-check-js:
@@ -206,6 +221,11 @@ format-check-api:
 [working-directory("ocr")]
 format-check-ocr:
     {{ UVR }} ruff format --check src tests
+
+# Check app code formatting
+[working-directory("app")]
+format-check-app:
+    swift format lint --strict -r .
 
 # Prepare project to work with
 prepare: install-modules prepare-api
@@ -233,6 +253,11 @@ z:
 # Open project in vscode
 code:
     code pokemon.code-workspace
+
+# Open app in Xcode
+[working-directory("app")]
+xcode:
+    open Pokemon.xcodeproj
 
 [private]
 [parallel]
