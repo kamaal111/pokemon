@@ -4,6 +4,9 @@ on:
     branches:
       - main
 
+env:
+  XCODE_APP_NAME: Xcode_26.3.app
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
   cancel-in-progress: true
@@ -18,6 +21,7 @@ jobs:
     outputs:
       api: ${{ steps.detect.outputs.api }}
       ocr: ${{ steps.detect.outputs.ocr }}
+      app: ${{ steps.detect.outputs.app }}
       skills: ${{ steps.detect.outputs.skills }}
     steps:
       - name: Check out code
@@ -117,6 +121,34 @@ jobs:
 
       - name: Run quality checks for ocr
         run: just quality-ocr
+
+  app:
+    name: App checks
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Select Xcode version
+        run: |
+          echo "listing available Xcode versions:"
+          ls -d /Applications/Xcode*
+
+          sudo xcode-select --switch /Applications/$XCODE_APP_NAME/Contents/Developer
+
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
+      - name: Run quality checks for app
+        run: just quality-app
+
+      - name: Run app tests
+        run: just test-app
 
   skills:
     name: Skill script tests

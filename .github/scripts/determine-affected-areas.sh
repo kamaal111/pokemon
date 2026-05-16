@@ -52,6 +52,9 @@ do
     $API)
       api=true
       ;;
+    $APP)
+      app=true
+      ;;
     $OCR)
       ocr=true
       ;;
@@ -63,4 +66,5 @@ done
 
 echo "api=$api" >> "$GITHUB_OUTPUT"
 echo "ocr=$ocr" >> "$GITHUB_OUTPUT"
+echo "app=$app" >> "$GITHUB_OUTPUT"
 echo "skills=$skills" >> "$GITHUB_OUTPUT"
