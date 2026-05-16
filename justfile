@@ -8,6 +8,12 @@ UV := "uv"
 UVR := UV + " run"
 
 API_PORT := env("API_PORT", "8080")
+APP_DERIVED_DATA_PATH := env("APP_DERIVED_DATA_PATH", "/tmp/pokemon-derived")
+APP_TEST_DESTINATION := env("APP_TEST_DESTINATION", "platform=iOS Simulator,name=iPhone 17,OS=latest")
+OCR_LEXICON_OUTPUT_PATH := env(
+    "OCR_LEXICON_OUTPUT_PATH",
+    "app/Modules/PokemonFeatures/Sources/PokemonOcr/Resources/PokemonSpeciesLexicon.tsv"
+)
 
 # List available commands
 default:
@@ -33,6 +39,20 @@ dev-ocr: prepare-ocr
 [working-directory("api")]
 seed-pokedex:
     {{ PNR }} seed:pokedex
+
+# Regenerate the OCR species lexicon from the local seeded Pokedex SQLite database
+generate-ocr-lexicon:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+
+    sqlite3 -separator $'\t' api/.data/pokemon.sqlite "
+        select language_name, trim(name)
+        from pokemon_species_names
+        where language_name in ('en', 'ja', 'ja-hrkt', 'ko', 'zh-hans', 'zh-hant')
+          and trim(name) <> ''
+        group by language_name, name
+        order by language_name, name;
+    " > "{{ OCR_LEXICON_OUTPUT_PATH }}"
 
 # Print the pnpm version declared in package.json
 pnpm-version:
@@ -127,7 +147,13 @@ test-skills:
 
 # Run app tests
 test-app:
-    echo "Not testing app yet"
+    xcodebuild \
+        -project app/Pokemon.xcodeproj \
+        -scheme Pokemon \
+        -sdk iphonesimulator \
+        -destination "{{ APP_TEST_DESTINATION }}" \
+        -derivedDataPath "{{ APP_DERIVED_DATA_PATH }}" \
+        test
 
 # Run quality checks
 [parallel]

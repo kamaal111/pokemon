@@ -4,7 +4,7 @@
       "path": "api",
     },
     {
-      "path": "ocr",
+      "path": "app",
     },
     {
       "path": ".",

@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "9B29405D-B03F-4783-8E74-B8C9A34E82C7",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Pokemon.xcodeproj",
+      "identifier" : "2CC241472FB8A9C100B90F20",
+      "name" : "Pokemon"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonFeatures",
+        "identifier" : "PokemonOcrTests",
+        "name" : "PokemonOcrTests"
+      }
+    }
+  ],
+  "version" : 1
+}

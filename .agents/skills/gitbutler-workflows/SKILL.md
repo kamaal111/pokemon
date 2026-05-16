@@ -11,7 +11,8 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 
 - Treat `gitbutler/workspace` as GitButler's integration branch, not a normal branch to commit on.
 - Do not use plain `git commit` on `gitbutler/workspace`.
-- Prefer GitButler CLI commands through `but` for branch creation, staging, commit creation, commit rewriting, pushing, and PR creation.
+- Prefer GitButler CLI commands through `but` for branch creation, staging, commit creation, commit rewriting, and pushing.
+- Do not assume `but pr` is the best default for pull request creation in non-interactive Codex runs.
 - Use plain `git` for read-only inspection when useful, but assume write operations on `HEAD`, branch refs, or the index can conflict with GitButler's model.
 
 ## Standard Flow
@@ -22,7 +23,10 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 4. Move unassigned work onto the target branch with `but stage <file-or-hunk> <branch>`.
 5. Create the commit with `but commit <branch> --only --message ...` when the branch already has the right staged changes.
 6. Push with `but push <branch>`.
-7. Open or update the review with `but pr new <branch>` when GitButler forge auth is configured.
+7. Open or update the review using the simplest authenticated path:
+   - prefer the GitHub connector when available
+   - otherwise prefer `gh pr create`
+   - only prefer `but pr new <branch>` when GitButler forge auth is already configured and you intentionally want to stay entirely in GitButler
 
 ## Setup And Access
 
@@ -52,8 +56,15 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 
 ## PR Notes
 
+- Treat PR creation as a separate auth surface from GitButler staging/commit/push.
 - `but pr` requires GitButler forge authentication.
-- If `but pr` fails because no authenticated forge user is configured, keep the GitButler branch and commit flow intact and use the available GitHub tooling only for the PR creation step.
+- `gh pr create` requires a valid `gh auth status`.
+- Before choosing a PR path, check the available auth once instead of discovering it by failure after multiple attempts.
+- In non-interactive Codex runs, prefer the GitHub connector or `gh pr create` by default because they are simpler and more predictable than `but pr`.
+- Use `but pr new` only when forge auth is already configured and you want GitButler to own the review creation step.
+- If you do use `but pr new` in non-interactive mode, always pass one of `--message`, `--file`, or `--default`.
+- If `but pr` fails because no authenticated forge user is configured, keep the GitButler branch and commit flow intact and switch to the available GitHub tooling only for the PR creation step.
+- If `gh auth status` is invalid, either use the GitHub connector or stop and ask the user to re-authenticate with `gh auth login`.
 - Reuse the commit message as the PR body when the user asks for a single source of truth.
 
 ## Safety Checks

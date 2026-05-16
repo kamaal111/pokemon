@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Database Workflows'
+  short_description: 'Drizzle schema, migration, and SQLite workflows'
+  default_prompt: 'Use $database-workflows when changing Drizzle schema, migrations, database config, or local database state in this repository.'
