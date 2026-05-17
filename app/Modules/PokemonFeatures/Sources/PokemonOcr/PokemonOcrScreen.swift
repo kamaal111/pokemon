@@ -9,6 +9,10 @@ import Foundation
 import SwiftUI
 
 public struct PokemonOcrScreen: View {
+    @State private var cameraController = PokemonCardCameraController()
+    @State private var detectionState = PokemonCardDetectionState.idle
+    @State private var candidateRectangles: [CGRect] = []
+    @State private var capturedImage: UIImage?
     @State private var selectedSample = PokemonOcrSampleCard.allCases[0]
     @State private var result: PokemonCardNameExtractionResult?
     @State private var errorMessage: String?
@@ -20,37 +24,39 @@ public struct PokemonOcrScreen: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Picker("Sample", selection: $selectedSample) {
-                        ForEach(PokemonOcrSampleCard.allCases) { sample in
-                            Text(sample.title).tag(sample)
+                    VStack(alignment: .leading, spacing: 10) {
+                        PokemonCardCameraPreview(
+                            session: cameraController.session,
+                            candidateRectangles: candidateRectangles
+                        )
+                        .frame(height: 420)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Button {
+                            startCardDetection()
+                        } label: {
+                            HStack {
+                                Image(systemName: "camera")
+                                Text(detectionState.canStartDetection ? "Scan Card" : "Scanning")
+                            }
+                            .frame(maxWidth: .infinity)
                         }
+                        .disabled(!detectionState.canStartDetection)
+
+                        Text(detectionState.statusText)
+                            .foregroundColor(statusTextColor)
                     }
-                    .pickerStyle(.menu)
                     .disabled(isLoading)
-                    .onChange(of: selectedSample) { _ in
-                        result = nil
-                        errorMessage = nil
+
+                    if let capturedImage {
+                        imageSection(title: "Captured", image: capturedImage)
                     }
 
-                    imageSection(title: "Original", image: selectedSample.image)
+                    sampleSection
 
                     if let cropImage = result?.titleCropImage {
                         imageSection(title: "Title Crop", image: cropImage)
                     }
-
-                    Button {
-                        runOcr()
-                    } label: {
-                        HStack {
-                            if isLoading {
-                                ProgressView()
-                            }
-
-                            Text(isLoading ? "Reading" : "Run OCR")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .disabled(isLoading)
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -64,6 +70,54 @@ public struct PokemonOcrScreen: View {
                 .padding()
             }
             .navigationTitle("Pokemon OCR")
+            .onDisappear {
+                cameraController.stopDetection()
+            }
+        }
+    }
+
+    private var sampleSection: some View {
+        DisclosureGroup("Sample OCR Debug") {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker("Sample", selection: $selectedSample) {
+                    ForEach(PokemonOcrSampleCard.allCases) { sample in
+                        Text(sample.title).tag(sample)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(isLoading || !detectionState.canStartDetection)
+                .onChange(of: selectedSample) { _ in
+                    result = nil
+                    errorMessage = nil
+                }
+
+                imageSection(title: "Sample", image: selectedSample.image)
+
+                Button {
+                    runOcr(on: selectedSample.image, finishedState: nil)
+                } label: {
+                    HStack {
+                        if isLoading {
+                            ProgressView()
+                        }
+
+                        Text(isLoading ? "Reading" : "Run Sample OCR")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .disabled(isLoading)
+            }
+        }
+    }
+
+    private var statusTextColor: Color {
+        switch detectionState {
+        case .failed:
+            .red
+        case .finished:
+            .green
+        case .idle, .requestingPermission, .detecting, .capturing, .reading:
+            .secondary
         }
     }
 
@@ -113,20 +167,83 @@ public struct PokemonOcrScreen: View {
         }
     }
 
-    private func runOcr() {
+    private func startCardDetection() {
+        result = nil
+        errorMessage = nil
+        capturedImage = nil
+        candidateRectangles = []
+
+        if let fakeCaptureImage = fakeCameraCaptureImage {
+            simulateCameraCapture(with: fakeCaptureImage)
+            return
+        }
+
+        cameraController.startDetection { state in
+            detectionState = state
+            if case .failed(let message) = state {
+                errorMessage = message
+            }
+        } onCandidateRectanglesChange: { rectangles in
+            candidateRectangles = rectangles
+        } onPhotoCaptured: { image in
+            capturedImage = image
+            runOcr(on: image, finishedState: .finished)
+        }
+    }
+
+    private var fakeCameraCaptureImage: UIImage? {
+        guard
+            ProcessInfo.processInfo.environment["POKEMON_UI_TEST_FAKE_CAMERA_CAPTURE"] == "eevee"
+        else {
+            return nil
+        }
+
+        return PokemonOcrSampleCard.eevee.image
+    }
+
+    private func simulateCameraCapture(with image: UIImage) {
+        detectionState = .detecting
+
+        Task {
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                return
+            }
+
+            detectionState = .capturing
+
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                return
+            }
+
+            capturedImage = image
+            runOcr(on: image, finishedState: .finished)
+        }
+    }
+
+    private func runOcr(on image: UIImage, finishedState: PokemonCardDetectionState?) {
         isLoading = true
         errorMessage = nil
-        let selectedImage = selectedSample.image
+        if finishedState != nil {
+            detectionState = .reading
+        }
 
         Task.detached(priority: .userInitiated) {
-            let extractionResult = await PokemonCardNameExtractor().extractName(from: selectedImage)
+            let extractionResult = await PokemonCardNameExtractor().extractName(from: image)
 
             await MainActor.run {
                 switch extractionResult {
                 case .success(let value):
                     result = value
+                    if let finishedState {
+                        detectionState = finishedState
+                    }
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                    detectionState = .failed(error.localizedDescription)
                 }
 
                 isLoading = false

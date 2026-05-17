@@ -116,6 +116,29 @@ struct PokemonCardNameCandidateSelectorTests {
     }
 
     @Test
+    func `Should prefer known species title over higher confidence attack text`() {
+        let candidates = [
+            PokemonOcrCandidate(
+                text: "Team Rocket's Meowth",
+                confidence: 0.30,
+                boundingBox: CGRect(x: 0.12, y: 0.78, width: 0.34, height: 0.04)
+            ),
+            PokemonOcrCandidate(
+                text: "Paw-cket Pilfer",
+                confidence: 0.50,
+                boundingBox: CGRect(x: 0.30, y: 0.52, width: 0.32, height: 0.05)
+            ),
+        ]
+
+        let selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
+            from: candidates,
+            preferredRegion: nil
+        )
+
+        #expect(selectedCandidate?.normalizedText == "Team Rocket's Meowth")
+    }
+
+    @Test
     func `Should reject noisy latin suffixes attached to junk mixed script`() {
         #expect(PokemonCardNameCandidateSelector.hasValidLatinSuffixForTesting("ホゲータex"))
         #expect(PokemonCardNameCandidateSelector.hasValidLatinSuffixForTesting("Charizard VMAX"))

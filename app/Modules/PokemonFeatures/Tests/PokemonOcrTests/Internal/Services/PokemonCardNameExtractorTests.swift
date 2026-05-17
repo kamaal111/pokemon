@@ -78,6 +78,24 @@ struct PokemonCardNameExtractorTests {
     }
 
     @Test
+    func `Should show selected candidate crop in debug title image`() async throws {
+        let recognizer = FakePokemonTextRecognizer(candidates: [
+            PokemonOcrCandidate(
+                text: "Meowth",
+                confidence: 0.99,
+                boundingBox: CGRect(x: 0.22, y: 0.42, width: 0.24, height: 0.05)
+            )
+        ])
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let result = try await extractor.extractName(from: testImage()).get()
+
+        #expect(result.normalizedTitle == "Meowth")
+        #expect(abs(result.titleCropImage.size.width - 153) < 2)
+        #expect(abs(result.titleCropImage.size.height - 87) < 2)
+    }
+
+    @Test
     func `Should stop after first supplemental pass returns strong candidate`() async throws {
         let recognizer = SequencedPokemonTextRecognizer(
             initialCandidates: [

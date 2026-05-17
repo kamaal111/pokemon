@@ -158,9 +158,15 @@ struct PokemonCardNameExtractor {
             }
         }
 
+        let debugTitleCrop = debugTitleCrop(
+            selectedCandidate: selectedCandidate,
+            defaultCrop: crop,
+            normalizedImage: normalizedImage
+        )
+
         let result = PokemonCardNameExtractionResult(
             originalImage: image,
-            titleCropImage: crop.image,
+            titleCropImage: debugTitleCrop.image,
             rawCandidates: candidates,
             selectedCandidate: selectedCandidate,
             normalizedTitle: selectedCandidate?.normalizedText
@@ -268,5 +274,31 @@ struct PokemonCardNameExtractor {
         let clampedRegion = allowedRegion.intersection(expandedRegion)
 
         return clampedRegion.isNull || clampedRegion.isEmpty ? expandedRegion : clampedRegion
+    }
+
+    private func debugTitleCrop(
+        selectedCandidate: PokemonOcrCandidate?,
+        defaultCrop: PokemonCardTitleCrop,
+        normalizedImage: UIImage
+    ) -> PokemonCardTitleCrop {
+        guard let selectedCandidate else {
+            return defaultCrop
+        }
+
+        let selectedRegion = selectedCandidate.boundingBox.insetBy(dx: -0.04, dy: -0.04)
+        let boundedRegion = CGRect(x: 0, y: 0, width: 1, height: 1)
+            .intersection(selectedRegion)
+        guard !boundedRegion.isNull else {
+            return defaultCrop
+        }
+
+        guard !boundedRegion.isEmpty else {
+            return defaultCrop
+        }
+
+        return PokemonCardTitleCropper.cropObservationRegion(
+            boundedRegion,
+            from: normalizedImage
+        )
     }
 }

@@ -22,4 +22,14 @@ struct PokemonOcrLexiconTests {
         #expect(koreanWords.contains("이브이"))
         #expect(englishWords.contains("Charmeleon"))
     }
+
+    @Test
+    func `Should score candidates that contain known species names`() {
+        let namedCardScore = PokemonOcrLexicon.bestSpeciesMatchScore(for: "Team Rocket's Meowth")
+        let attackScore = PokemonOcrLexicon.bestSpeciesMatchScore(for: "Paw-cket Pilfer")
+        let partialNameScore = PokemonOcrLexicon.bestSpeciesMatchScore(for: "Mewtwo")
+
+        #expect(namedCardScore > attackScore)
+        #expect(partialNameScore > 0)
+    }
 }

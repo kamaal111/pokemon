@@ -58,6 +58,8 @@ struct PokemonCardNameCandidateSelector {
             score += 45
         }
 
+        score += PokemonOcrLexicon.bestSpeciesMatchScore(for: normalizedText)
+
         // Recognized card suffixes like EX or V are useful tie-breakers because
         // they frequently appear in real card names but not in surrounding text.
         if hasValidLatinSuffix(normalizedText) {
