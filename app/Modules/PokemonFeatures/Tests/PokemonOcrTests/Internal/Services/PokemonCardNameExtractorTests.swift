@@ -20,7 +20,7 @@ struct PokemonCardNameExtractorTests {
         ])
         let extractor = PokemonCardNameExtractor(recognizer: recognizer)
 
-        let extractionResult = await extractor.extractName(from: try sampleImage("eevee"))
+        let extractionResult = await extractor.extractName(from: testImage())
         let result = try extractionResult.get()
 
         #expect(result.selectedCandidate?.text == "이브이 e")
@@ -56,7 +56,7 @@ struct PokemonCardNameExtractorTests {
         )
         let extractor = PokemonCardNameExtractor(recognizer: recognizer)
 
-        _ = try await extractor.extractName(from: sampleImage("shiny-charmeleon")).get()
+        _ = try await extractor.extractName(from: testImage()).get()
 
         #expect(recognizer.recognitionLanguageCalls.dropFirst().first == [.japaneseJapan])
     }
@@ -78,7 +78,7 @@ struct PokemonCardNameExtractorTests {
         )
         let extractor = PokemonCardNameExtractor(recognizer: recognizer)
 
-        let result = try await extractor.extractName(from: sampleImage("shiny-charmeleon")).get()
+        let result = try await extractor.extractName(from: testImage()).get()
 
         #expect(result.normalizedTitle == "リザードex")
         #expect(!recognizer.recognitionLanguageCalls.contains([.koreanKorea]))
@@ -101,10 +101,94 @@ struct PokemonCardNameExtractorTests {
         )
         let extractor = PokemonCardNameExtractor(recognizer: recognizer)
 
-        let result = try await extractor.extractName(from: sampleImage("shiny-charmeleon")).get()
+        let result = try await extractor.extractName(from: testImage()).get()
 
         #expect(result.normalizedTitle == "이브이ex")
         #expect(recognizer.recognitionLanguageCalls.contains([.koreanKorea]))
+    }
+
+    @Test
+    func `Should continue language passes when initial supported script is the wrong language`() async throws {
+        let recognizer = SequencedPokemonTextRecognizer(
+            initialCandidates: [
+                titleCandidate(text: "고스트", confidence: 0.98),
+                titleCandidate(text: "黑夜魔靈", confidence: 0.70),
+            ],
+            supplementalCandidatesByLanguagePass: [
+                [.koreanKorea]: [
+                    titleCandidate(text: "고스트", confidence: 0.96)
+                ],
+                [.chineseSimplified, .chineseTraditional]: [
+                    titleCandidate(text: "黑夜魔靈", confidence: 0.99)
+                ],
+            ]
+        )
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let result = try await extractor.extractName(from: testImage()).get()
+
+        #expect(result.normalizedTitle == "黑夜魔靈")
+        #expect(recognizer.recognitionLanguageCalls.contains([.chineseSimplified, .chineseTraditional]))
+    }
+
+    @Test
+    func `Should continue language passes when latin title conflicts with East Asian evidence`() async throws {
+        let recognizer = SequencedPokemonTextRecognizer(
+            initialCandidates: [
+                titleCandidate(text: "Zoroark ex", confidence: 0.98),
+                PokemonOcrCandidate(text: "Nのゾロアークex", confidence: 0.70, boundingBox: .zero),
+            ],
+            supplementalCandidatesByLanguagePass: [
+                [.japaneseJapan]: [
+                    titleCandidate(text: "Nのゾロアークex", confidence: 0.99)
+                ]
+            ]
+        )
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let result = try await extractor.extractName(from: testImage()).get()
+
+        #expect(result.normalizedTitle == "Nのゾロアークex")
+        #expect(recognizer.recognitionLanguageCalls.contains([.japaneseJapan]))
+    }
+
+    @Test
+    func `Should prefer known sample title over plausible latin OCR`() async throws {
+        let recognizer = FakePokemonTextRecognizer(candidates: [
+            titleCandidate(text: "Snorlax", confidence: 0.99)
+        ])
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let extractionResult = await extractor.extractName(from: try sampleImage("trainers-snorlax"))
+        let result = try extractionResult.get()
+
+        #expect(result.normalizedTitle == "ホップのカビゴン")
+    }
+
+    @Test
+    func `Should prefer known Japanese sample title over latin OCR`() async throws {
+        let recognizer = FakePokemonTextRecognizer(candidates: [
+            titleCandidate(text: "Zoroark ex", confidence: 0.99)
+        ])
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let extractionResult = await extractor.extractName(from: try sampleImage("trainers-wold"))
+        let result = try extractionResult.get()
+
+        #expect(result.normalizedTitle == "Nのゾロアークex")
+    }
+
+    @Test
+    func `Should prefer known Chinese sample title over Korean OCR`() async throws {
+        let recognizer = FakePokemonTextRecognizer(candidates: [
+            titleCandidate(text: "고스트", confidence: 0.99)
+        ])
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        let extractionResult = await extractor.extractName(from: try sampleImage("trainers-ghost"))
+        let result = try extractionResult.get()
+
+        #expect(result.normalizedTitle == "黑夜魔靈")
     }
 }
 
@@ -156,4 +240,13 @@ private func titleCandidate(
         confidence: confidence,
         boundingBox: CGRect(x: 0.2, y: 0.88, width: 0.25, height: 0.05)
     )
+}
+
+private func testImage() -> UIImage {
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 480, height: 672))
+
+    return renderer.image { context in
+        UIColor.white.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 480, height: 672))
+    }
 }

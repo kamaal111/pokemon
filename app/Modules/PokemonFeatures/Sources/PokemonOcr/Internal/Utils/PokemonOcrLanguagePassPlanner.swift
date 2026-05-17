@@ -21,7 +21,7 @@ enum PokemonOcrLanguagePassPlanner {
         selectedCandidate: PokemonOcrCandidate?
     ) -> [[PokemonRecognitionLanguage]] {
         let evidenceTexts = evidenceTexts(from: candidates, selectedCandidate: selectedCandidate)
-        let primaryLanguage = evidenceTexts.compactMap(inferredPrimaryLanguage).first
+        let primaryLanguage = dominantPrimaryLanguage(for: evidenceTexts)
         guard let primaryLanguage else {
             return defaultLanguagePasses
         }
@@ -29,14 +29,43 @@ enum PokemonOcrLanguagePassPlanner {
         return reorderedLanguagePasses(primaryLanguageFirst: primaryLanguage)
     }
 
+    static func dominantPrimaryLanguage(for texts: [String]) -> PokemonRecognitionLanguage? {
+        let inferredLanguages = texts.compactMap(inferredPrimaryLanguage)
+        guard !inferredLanguages.isEmpty else {
+            return nil
+        }
+
+        let counts = Dictionary(grouping: inferredLanguages, by: { $0 }).mapValues(\.count)
+
+        return defaultLanguagePasses.compactMap(\.first)
+            .max { left, right in
+                let leftCount = counts[left] ?? 0
+                let rightCount = counts[right] ?? 0
+
+                if leftCount == rightCount {
+                    return languagePriority(left) > languagePriority(right)
+                }
+
+                return leftCount < rightCount
+            }
+    }
+
+    static func inferredPrimaryLanguageForTesting(
+        _ text: String
+    ) -> PokemonRecognitionLanguage? {
+        inferredPrimaryLanguage(for: text)
+    }
+
     private static func evidenceTexts(
         from candidates: [PokemonOcrCandidate],
         selectedCandidate: PokemonOcrCandidate?
     ) -> [String] {
-        let selectedTexts = selectedCandidate.map { [$0.normalizedText] } ?? []
         let candidateTexts = candidates.map(\.normalizedText)
+        guard !candidateTexts.isEmpty else {
+            return selectedCandidate.map { [$0.normalizedText] } ?? []
+        }
 
-        return selectedTexts + candidateTexts
+        return candidateTexts
     }
 
     private static func inferredPrimaryLanguage(
@@ -141,5 +170,20 @@ enum PokemonOcrLanguagePassPlanner {
         }
 
         return !PokemonCardTitleNormalizer.containsSupportedNameScript(text)
+    }
+
+    private static func languagePriority(_ language: PokemonRecognitionLanguage) -> Int {
+        switch language {
+        case .japaneseJapan:
+            0
+        case .koreanKorea:
+            1
+        case .chineseSimplified:
+            2
+        case .chineseTraditional:
+            3
+        case .englishUnitedStates:
+            4
+        }
     }
 }

@@ -9,8 +9,11 @@ import UIKit
 
 enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
     case eevee
+    case insectChinese
     case shinyCharmeleon
+    case trainersGhost
     case trainersSnorlax
+    case trainersWold
 
     var id: String {
         rawValue
@@ -20,10 +23,16 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
         switch self {
         case .eevee:
             "Eevee"
+        case .insectChinese:
+            "Chinese Insect"
         case .shinyCharmeleon:
             "Shiny Charmeleon"
+        case .trainersGhost:
+            "黑夜魔靈"
         case .trainersSnorlax:
             "Trainer's Snorlax"
+        case .trainersWold:
+            "Nのゾロアークex"
         }
     }
 
@@ -31,16 +40,26 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
         switch self {
         case .eevee:
             "이브이ex"
+        case .insectChinese:
+            "音箱蟀"
         case .shinyCharmeleon:
             "リザード"
+        case .trainersGhost:
+            "黑夜魔靈"
         case .trainersSnorlax:
             "ホップのカビゴン"
+        case .trainersWold:
+            "Nのゾロアークex"
         }
     }
 
     var image: UIImage {
-        let url = Bundle.module.url(forResource: fileName, withExtension: "jpg")!
-        let image = UIImage(contentsOfFile: url.path)!
+        guard let url = resourceURL else {
+            preconditionFailure("Missing OCR sample image resource: \(fileName).jpg")
+        }
+        guard let image = UIImage(contentsOfFile: url.path) else {
+            preconditionFailure("OCR sample image could not be decoded: \(fileName).jpg")
+        }
 
         return image
     }
@@ -49,10 +68,28 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
         switch self {
         case .eevee:
             "eevee"
+        case .insectChinese:
+            "insect-chinese"
         case .shinyCharmeleon:
             "shiny-charmeleon"
+        case .trainersGhost:
+            "trainers-ghost"
         case .trainersSnorlax:
             "trainers-snorlax"
+        case .trainersWold:
+            "trainers-wold"
         }
+    }
+
+    private var resourceURL: URL? {
+        if let rootURL = Bundle.module.url(forResource: fileName, withExtension: "jpg") {
+            return rootURL
+        }
+
+        return Bundle.module.url(
+            forResource: fileName,
+            withExtension: "jpg",
+            subdirectory: "SampleCards"
+        )
     }
 }

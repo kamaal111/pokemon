@@ -25,8 +25,12 @@ public struct PokemonOcrScreen: View {
                             Text(sample.title).tag(sample)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                     .disabled(isLoading)
+                    .onChange(of: selectedSample) { _ in
+                        result = nil
+                        errorMessage = nil
+                    }
 
                     imageSection(title: "Original", image: selectedSample.image)
 
