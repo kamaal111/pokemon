@@ -12,7 +12,7 @@ APP_DERIVED_DATA_PATH := env("APP_DERIVED_DATA_PATH", "/tmp/pokemon-derived")
 APP_TEST_DESTINATION := env("APP_TEST_DESTINATION", "platform=iOS Simulator,name=iPhone 17,OS=latest")
 OCR_LEXICON_OUTPUT_PATH := env(
     "OCR_LEXICON_OUTPUT_PATH",
-    "app/Modules/PokemonFeatures/Sources/PokemonOcr/Resources/PokemonSpeciesLexicon.tsv"
+    "app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Resources/PokemonSpeciesLexicon.tsv"
 )
 
 # List available commands
@@ -29,11 +29,6 @@ dev-api: prepare-api
     export MODE="api"
 
     {{ PNR }} dev
-
-# Run dev ocr
-[working-directory("ocr")]
-dev-ocr: prepare-ocr
-    {{ UVR }} src/main.py
 
 # Seed the pokedex SQLite database
 [working-directory("api")]
@@ -112,9 +107,6 @@ heavy: quality test-heavy
 [parallel]
 ready-api: quality-api test-api
 
-# Run all verification checks for ocr
-ready-ocr: quality-ocr test-ocr
-
 # Run all verification checks for app
 ready-app: quality-app test-app
 
@@ -128,18 +120,12 @@ compile-api:
 test: test-api test-skills test-app
 
 # Run heavy tests
-[parallel]
-test-heavy: test test-ocr
+test-heavy: test
 
 # Run api tests
 [working-directory("api")]
 test-api:
     {{ PNR }} test
-
-# Run ocr tests
-[working-directory("ocr")]
-test-ocr:
-    {{ UVR }} pytest -vv --durations=0 tests
 
 # Run dependency-upgrade skill script tests
 test-skills:
@@ -163,30 +149,20 @@ quality: lint format-check typecheck
 [parallel]
 quality-api: lint-api lint-sql format-check-api format-sql typecheck-api
 
-# Run quality checks for ocr
-[parallel]
-quality-ocr: lint-ocr format-check-ocr typecheck-ocr
-
 # Run quality checks for app
 quality-app: format-check-app
 
 # Type check
-[parallel]
-typecheck: typecheck-api typecheck-ocr
+typecheck: typecheck-api
 
 # Type check api
 [working-directory("api")]
 typecheck-api:
     {{ PNR }} typecheck
 
-# Type check ocr
-[working-directory("ocr")]
-typecheck-ocr:
-    {{ UVR }} ty check src tests
-
 # Lint the project
 [parallel]
-lint: lint-js lint-sql lint-ocr
+lint: lint-js lint-sql
 
 # Lint js code
 lint-js:
@@ -200,14 +176,9 @@ lint-sql:
 lint-api:
     {{ PNR }} lint:api
 
-# Lint ocr code
-[working-directory("ocr")]
-lint-ocr:
-    {{ UVR }} ruff check src tests
-
 # Format code
 [parallel]
-format: format-js format-sql format-ocr format-app
+format: format-js format-sql format-app
 
 # Format js code
 format-js:
@@ -217,11 +188,6 @@ format-js:
 format-sql:
     {{ PNR }} format:sql
 
-# Format ocr code
-[working-directory("ocr")]
-format-ocr:
-    {{ UVR }} ruff format src tests
-
 # Format app code
 [working-directory("app")]
 format-app:
@@ -229,7 +195,7 @@ format-app:
 
 # Check code formatting
 [parallel]
-format-check: format-check-js format-check-sql format-check-ocr format-check-app
+format-check: format-check-js format-check-sql format-check-app
 
 # Check js code formatting
 format-check-js:
@@ -243,11 +209,6 @@ format-check-sql:
 format-check-api:
     {{ PNR }} format:check:api
 
-# Check ocr code formatting
-[working-directory("ocr")]
-format-check-ocr:
-    {{ UVR }} ruff format --check src tests
-
 # Check app code formatting
 [working-directory("app")]
 format-check-app:
@@ -255,9 +216,6 @@ format-check-app:
 
 # Prepare project to work with
 prepare: install-modules prepare-api
-
-# Prepare ocr
-prepare-ocr: install-modules-ocr
 
 # Prepare api
 prepare-api: install-modules-api
@@ -286,8 +244,7 @@ xcode:
     open Pokemon.xcodeproj
 
 [private]
-[parallel]
-install-modules-ci: install-node-modules-ci install-python-modules
+install-modules-ci: install-node-modules-ci
 
 [private]
 install-node-modules-ci:
@@ -300,8 +257,7 @@ install-modules-api-ci:
     {{ PN }} install --frozen-lockfile
 
 [private]
-[parallel]
-install-modules: install-node-modules install-python-modules
+install-modules: install-node-modules
 
 [private]
 install-node-modules:
@@ -309,13 +265,6 @@ install-node-modules:
 
     . ~/.zshrc || true
     echo "Y" | {{ PN }} i
-
-[private]
-install-modules-ocr: install-python-modules
-
-[private]
-install-python-modules:
-    {{ UV }} sync
 
 [private]
 [working-directory("api")]
