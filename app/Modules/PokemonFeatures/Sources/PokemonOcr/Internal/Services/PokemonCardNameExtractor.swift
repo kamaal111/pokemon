@@ -32,12 +32,6 @@ struct PokemonCardNameExtractionResult {
 
 struct PokemonCardNameExtractor {
     private let recognizer: PokemonTextRecognizing
-    private static let supplementalLanguagePasses: [[PokemonRecognitionLanguage]] = [
-        [.japaneseJapan],
-        [.koreanKorea],
-        [.chineseSimplified, .chineseTraditional],
-        [.englishUnitedStates],
-    ]
 
     init(recognizer: PokemonTextRecognizing = VisionPokemonTextRecognizer()) {
         self.recognizer = recognizer
@@ -79,7 +73,11 @@ struct PokemonCardNameExtractor {
                 from: normalizedImage
             )
             let enhancedFocusedCropImage = focusedCrop.image.enhancedFocusedTextImageForPokemonOcr()
-            for languages in Self.supplementalLanguagePasses {
+            let languagePasses = PokemonOcrLanguagePassPlanner.supplementalLanguagePasses(
+                for: candidates,
+                selectedCandidate: selectedCandidate
+            )
+            for languages in languagePasses {
                 let supplementalRecognition = await recognizer.recognizeText(
                     in: normalizedImage,
                     regionOfInterest: nil,
@@ -120,12 +118,15 @@ struct PokemonCardNameExtractor {
                         cropObservationRegion: focusedRegion
                     )
                 )
-            }
 
-            selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
-                from: candidates,
-                preferredRegion: titleRegion
-            )
+                selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
+                    from: candidates,
+                    preferredRegion: titleRegion
+                )
+                if !shouldRunSupplementalLanguagePass(for: selectedCandidate) {
+                    break
+                }
+            }
 
             if shouldRunSupplementalLanguagePass(for: selectedCandidate) {
                 if let matchedTitle = knownSampleResolver.resolveTitle(for: normalizedImage) {

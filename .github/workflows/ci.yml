@@ -107,6 +107,9 @@ jobs:
       - name: Run quality checks for app
         run: just quality-app
 
+      - name: Log available app destinations
+        run: just app-destinations
+
       - name: Run app tests
         run: just test-app
 

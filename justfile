@@ -9,7 +9,9 @@ UVR := UV + " run"
 
 API_PORT := env("API_PORT", "8080")
 APP_DERIVED_DATA_PATH := env("APP_DERIVED_DATA_PATH", "/tmp/pokemon-derived")
-APP_TEST_DESTINATION := env("APP_TEST_DESTINATION", "platform=iOS Simulator,name=iPhone 17,OS=latest")
+APP_PROJECT := "Pokemon.xcodeproj"
+APP_SCHEME := "Pokemon"
+APP_TEST_DESTINATION := env("APP_TEST_DESTINATION", "platform=iOS Simulator,name=iPhone 17")
 OCR_LEXICON_OUTPUT_PATH := env(
     "OCR_LEXICON_OUTPUT_PATH",
     "app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Resources/PokemonSpeciesLexicon.tsv"
@@ -132,14 +134,26 @@ test-skills:
     {{ UVR }} -m unittest discover -s .agents/skills/dependency-upgrade-best-practices/tests -p 'test_*.py'
 
 # Run app tests
+[working-directory("app")]
 test-app:
     xcodebuild \
-        -project app/Pokemon.xcodeproj \
-        -scheme Pokemon \
+        -project "{{ APP_PROJECT }}" \
+        -scheme "{{ APP_SCHEME }}" \
         -sdk iphonesimulator \
         -destination "{{ APP_TEST_DESTINATION }}" \
         -derivedDataPath "{{ APP_DERIVED_DATA_PATH }}" \
         test
+
+# Log available app destinations
+[working-directory("app")]
+app-destinations:
+    xcodebuild \
+        -showdestinations \
+        -project "{{ APP_PROJECT }}" \
+        -scheme "{{ APP_SCHEME }}" \
+        -sdk iphonesimulator
+
+    xcrun simctl list devices available
 
 # Run quality checks
 [parallel]
@@ -241,7 +255,7 @@ code:
 # Open app in Xcode
 [working-directory("app")]
 xcode:
-    open Pokemon.xcodeproj
+    open "{{ APP_PROJECT }}"
 
 [private]
 install-modules-ci: install-node-modules-ci
