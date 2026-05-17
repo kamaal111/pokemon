@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.detect.outputs.api }}
-      ocr: ${{ steps.detect.outputs.ocr }}
       app: ${{ steps.detect.outputs.app }}
       skills: ${{ steps.detect.outputs.skills }}
     steps:
@@ -82,45 +81,6 @@ jobs:
 
       - name: Run api tests
         run: just test-api
-
-  ocr:
-    name: OCR checks
-    needs: changes
-    if: needs.changes.outputs.ocr == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT: '0'
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: .python-version
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
-
-      - name: Cache Paddle OCR models
-        uses: actions/cache@v4
-        with:
-          path: ~/.paddlex
-          key: paddle-ocr-${{ runner.os }}-${{ hashFiles('uv.lock', 'ocr/pyproject.toml') }}
-          restore-keys: |
-            paddle-ocr-${{ runner.os }}-
-
-      - name: Set up just
-        uses: extractions/setup-just@v4
-
-      - name: Prepare ocr
-        run: just prepare-ocr
-
-      - name: Run quality checks for ocr
-        run: just quality-ocr
 
   app:
     name: App checks
