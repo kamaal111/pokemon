@@ -31,6 +31,8 @@ struct PokemonCardNameExtractionResult {
 }
 
 struct PokemonCardNameExtractor {
+    private static let knownSampleResolver = PokemonOcrKnownSampleResolver()
+
     private let recognizer: PokemonTextRecognizing
 
     init(recognizer: PokemonTextRecognizing = VisionPokemonTextRecognizer()) {
@@ -40,20 +42,20 @@ struct PokemonCardNameExtractor {
     func extractName(
         from image: UIImage
     ) async -> Result<PokemonCardNameExtractionResult, PokemonCardNameExtractionError> {
-        let knownSampleResolver = PokemonOcrKnownSampleResolver()
         let cropResult = PokemonCardTitleCropper.cropTitle(from: image)
         guard case .success(let crop) = cropResult else { return .failure(.emptyTitleCrop) }
 
         let normalizedImage = image.normalizedForPokemonOcr()
+        let titleRegion = PokemonCardTitleCropper.titleObservationRegion(for: normalizedImage.size)
+        let titleSearchRegion = PokemonCardTitleCropper.titleSearchRegion(for: normalizedImage.size)
         let initialRecognition = await recognizer.recognizeText(
             in: normalizedImage,
-            regionOfInterest: nil,
+            regionOfInterest: titleSearchRegion,
             recognitionLanguages: nil
         )
         guard case .success(let initialCandidates) = initialRecognition else { return .failure(.textRecognitionFailed) }
 
         var candidates = initialCandidates
-        let titleRegion = PokemonCardTitleCropper.titleObservationRegion(for: normalizedImage.size)
         var selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
             from: candidates,
             preferredRegion: titleRegion
@@ -61,7 +63,7 @@ struct PokemonCardNameExtractor {
         if let knownSampleCandidate = knownSampleCandidate(
             for: normalizedImage,
             boundingBox: titleRegion,
-            resolver: knownSampleResolver
+            resolver: Self.knownSampleResolver
         ) {
             candidates.append(knownSampleCandidate)
             selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
@@ -143,7 +145,7 @@ struct PokemonCardNameExtractor {
                 if let resolvedCandidate = knownSampleCandidate(
                     for: normalizedImage,
                     boundingBox: focusedRegion,
-                    resolver: knownSampleResolver
+                    resolver: Self.knownSampleResolver
                 ) {
                     candidates.append(resolvedCandidate)
                     selectedCandidate = resolvedCandidate
