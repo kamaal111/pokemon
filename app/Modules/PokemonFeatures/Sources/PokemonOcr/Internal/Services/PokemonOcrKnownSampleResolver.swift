@@ -9,12 +9,12 @@ import CryptoKit
 import UIKit
 
 struct PokemonOcrKnownSampleResolver {
-    private let referenceSamples = loadReferenceSamples()
+    private static let referenceSamples = loadReferenceSamples()
 
     func resolveTitle(for image: UIImage) -> String? {
         guard let querySignature = pixelSignature(for: image.normalizedForPokemonOcr()) else { return nil }
 
-        return referenceSamples.first(where: { $0.signature == querySignature })?.title
+        return Self.referenceSamples.first(where: { $0.signature == querySignature })?.title
     }
 
     private static func loadReferenceSamples() -> [ReferenceSample] {

@@ -62,6 +62,22 @@ struct PokemonCardNameExtractorTests {
     }
 
     @Test
+    func `Should constrain initial recognition to title search region`() async throws {
+        let image = testImage()
+        let recognizer = SequencedPokemonTextRecognizer(
+            initialCandidates: [
+                titleCandidate(text: "リザードex", confidence: 0.96)
+            ],
+            supplementalCandidatesByLanguagePass: [:]
+        )
+        let extractor = PokemonCardNameExtractor(recognizer: recognizer)
+
+        _ = try await extractor.extractName(from: image).get()
+
+        #expect(recognizer.recognitionRegionCalls.first == PokemonCardTitleCropper.titleSearchRegion(for: image.size))
+    }
+
+    @Test
     func `Should stop after first supplemental pass returns strong candidate`() async throws {
         let recognizer = SequencedPokemonTextRecognizer(
             initialCandidates: [
@@ -208,6 +224,7 @@ private final class SequencedPokemonTextRecognizer: PokemonTextRecognizing {
     private let initialCandidates: [PokemonOcrCandidate]
     private let supplementalCandidatesByLanguagePass: [[PokemonRecognitionLanguage]: [PokemonOcrCandidate]]
     private(set) var recognitionLanguageCalls: [[PokemonRecognitionLanguage]?] = []
+    private(set) var recognitionRegionCalls: [CGRect?] = []
 
     init(
         initialCandidates: [PokemonOcrCandidate],
@@ -223,6 +240,7 @@ private final class SequencedPokemonTextRecognizer: PokemonTextRecognizing {
         recognitionLanguages: [PokemonRecognitionLanguage]?
     ) async -> Result<[PokemonOcrCandidate], PokemonTextRecognitionError> {
         recognitionLanguageCalls.append(recognitionLanguages)
+        recognitionRegionCalls.append(regionOfInterest)
         guard let recognitionLanguages else {
             return .success(initialCandidates)
         }
