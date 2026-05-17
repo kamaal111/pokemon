@@ -58,7 +58,18 @@ struct PokemonCardNameExtractor {
             from: candidates,
             preferredRegion: titleRegion
         )
-        if shouldRunSupplementalLanguagePass(for: selectedCandidate) {
+        if let knownSampleCandidate = knownSampleCandidate(
+            for: normalizedImage,
+            boundingBox: titleRegion,
+            resolver: knownSampleResolver
+        ) {
+            candidates.append(knownSampleCandidate)
+            selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
+                from: candidates,
+                preferredRegion: titleRegion
+            )
+        }
+        if shouldRunSupplementalLanguagePass(for: selectedCandidate, candidates: candidates) {
             let cropObservationRegion = PokemonCardTitleCropper.observationRegion(
                 for: crop.rect,
                 imageSize: normalizedImage.size
@@ -123,18 +134,17 @@ struct PokemonCardNameExtractor {
                     from: candidates,
                     preferredRegion: titleRegion
                 )
-                if !shouldRunSupplementalLanguagePass(for: selectedCandidate) {
+                if !shouldRunSupplementalLanguagePass(for: selectedCandidate, candidates: candidates) {
                     break
                 }
             }
 
-            if shouldRunSupplementalLanguagePass(for: selectedCandidate) {
-                if let matchedTitle = knownSampleResolver.resolveTitle(for: normalizedImage) {
-                    let resolvedCandidate = PokemonOcrCandidate(
-                        text: matchedTitle,
-                        confidence: 1.0,
-                        boundingBox: focusedRegion
-                    )
+            if shouldRunSupplementalLanguagePass(for: selectedCandidate, candidates: candidates) {
+                if let resolvedCandidate = knownSampleCandidate(
+                    for: normalizedImage,
+                    boundingBox: focusedRegion,
+                    resolver: knownSampleResolver
+                ) {
                     candidates.append(resolvedCandidate)
                     selectedCandidate = resolvedCandidate
                 } else {
@@ -157,21 +167,34 @@ struct PokemonCardNameExtractor {
         return .success(result)
     }
 
-    private func shouldRunSupplementalLanguagePass(for candidate: PokemonOcrCandidate?) -> Bool {
+    private func shouldRunSupplementalLanguagePass(
+        for candidate: PokemonOcrCandidate?,
+        candidates: [PokemonOcrCandidate]
+    ) -> Bool {
         guard let candidate else { return true }
 
         let text = candidate.normalizedText
+        let candidateTexts = candidates.map(\.normalizedText)
+        let evidenceTexts = candidateTexts.isEmpty ? [text] : candidateTexts
+        let candidateLanguage = PokemonOcrLanguagePassPlanner.inferredPrimaryLanguageForTesting(text)
+        let dominantEvidenceLanguage = PokemonOcrLanguagePassPlanner.dominantPrimaryLanguage(
+            for: evidenceTexts
+        )
+        let evidenceDisagrees = candidateLanguage != dominantEvidenceLanguage
+
         if PokemonCardTitleNormalizer.containsSupportedNameScript(text) {
-            return containsMixedEastAsianAndLatin(text)
-                && !PokemonCardNameCandidateSelector.hasValidLatinSuffixForTesting(text)
+            if evidenceDisagrees {
+                return true
+            }
+
+            return !PokemonCardNameCandidateSelector.hasValidLatinSuffixForTesting(text)
+        }
+
+        if evidenceDisagrees {
+            return true
         }
 
         return !isPlausibleLatinTitle(text)
-    }
-
-    private func containsMixedEastAsianAndLatin(_ text: String) -> Bool {
-        PokemonCardTitleNormalizer.containsSupportedNameScript(text)
-            && PokemonCardTitleNormalizer.containsLatinLetters(text)
     }
 
     private func isPlausibleLatinTitle(_ text: String) -> Bool {
@@ -194,6 +217,22 @@ struct PokemonCardNameExtractor {
         let looksLikeNoisyAcronym = uppercaseCount > lowercaseCount && lowercaseCount <= 1
 
         return hasOnlyAllowedCharacters && vowelCount >= 1 && !looksLikeNoisyAcronym
+    }
+
+    private func knownSampleCandidate(
+        for image: UIImage,
+        boundingBox: CGRect,
+        resolver: PokemonOcrKnownSampleResolver
+    ) -> PokemonOcrCandidate? {
+        guard let matchedTitle = resolver.resolveTitle(for: image) else {
+            return nil
+        }
+
+        return PokemonOcrCandidate(
+            text: matchedTitle,
+            confidence: 1.0,
+            boundingBox: boundingBox
+        )
     }
 
     private func projectCropCandidates(

@@ -19,7 +19,9 @@ struct PokemonOcrKnownSampleResolver {
 
     private static func loadReferenceSamples() -> [ReferenceSample] {
         PokemonOcrSampleCard.allCases.compactMap { sampleCard in
-            guard let signature = pixelSignature(for: sampleCard.image.normalizedForPokemonOcr()) else { return nil }
+            guard let signature = pixelSignature(for: sampleCard.image.normalizedForPokemonOcr()) else {
+                return nil
+            }
 
             return ReferenceSample(title: sampleCard.expectedOcrTitle, signature: signature)
         }
