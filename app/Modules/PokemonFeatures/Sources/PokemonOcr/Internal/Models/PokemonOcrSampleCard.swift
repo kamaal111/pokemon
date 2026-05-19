@@ -8,6 +8,7 @@
 import UIKit
 
 enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
+    case cameraMeowth
     case eevee
     case insectChinese
     case shinyCharmeleon
@@ -21,6 +22,8 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .cameraMeowth:
+            "Camera Meowth"
         case .eevee:
             "Eevee"
         case .insectChinese:
@@ -38,6 +41,8 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
 
     var expectedOcrTitle: String {
         switch self {
+        case .cameraMeowth:
+            "Team Rocket's Meowth"
         case .eevee:
             "이브이ex"
         case .insectChinese:
@@ -66,6 +71,8 @@ enum PokemonOcrSampleCard: String, CaseIterable, Identifiable {
 
     private var fileName: String {
         switch self {
+        case .cameraMeowth:
+            "camera-meowth"
         case .eevee:
             "eevee"
         case .insectChinese:
