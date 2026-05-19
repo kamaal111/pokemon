@@ -1,0 +1,49 @@
+api/src/logging/utils.ts
+  s_be1aaa5f92d2d4::t_d796d4140099f6 12
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardDetectionFrameThrottler.swift
+  s_be1aaa5f92d2d4::t_f725b20120340f 1-36
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraState.swift
+  s_be1aaa5f92d2d4::t_80b57749d86122 13,23,26-27,35,42,46
+app/Modules/PokemonFeatures/Sources/PokemonOcr/PokemonOcrScreen.swift
+  s_be1aaa5f92d2d4::t_b4e9159b286658 130,236
+  s_be1aaa5f92d2d4::t_1119e14f49979e 16,62,81,84-85,91-122,151,157-158,161-162,170,196-235,237
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Services/PokemonCardShapeDetector.swift
+  s_be1aaa5f92d2d4::t_2ac5be20f9c8eb 1-131
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraController.swift
+  s_be1aaa5f92d2d4::t_874dd2b3c7d833 10
+  s_be1aaa5f92d2d4::t_338bf89002c099 19-20,26-27,31-33,36,38,108-109,205-210,219-244
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardAutoCaptureGate.swift
+  s_be1aaa5f92d2d4::t_e207aceca769ec 1-78
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Services/PokemonCardShapeDetectorTests.swift
+  s_be1aaa5f92d2d4::t_e364a97d85bd52 1-57
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Camera/PokemonCardAutoCaptureGateTests.swift
+  s_be1aaa5f92d2d4::t_2e9892b5846c08 1-18,22,26-31,37,43-48,54,60-66,72,78-83
+  s_be1aaa5f92d2d4::t_de3f0d9478e274 19-21,23-25,32-36,38-42,49-53,55-59,67-71,73-77
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Utils/PokemonCardCropper.swift
+  s_be1aaa5f92d2d4::t_417b002511a4a1 87-124,179-192
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Camera/PokemonCardDetectionFrameThrottlerTests.swift
+  s_be1aaa5f92d2d4::t_004bad6a16a1ac 17,19,26-30,37-45,52-53,55-59
+  s_be1aaa5f92d2d4::t_de5977be0c5403 1-16,18,20-25,31-36,46-51,54,60-61
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Utils/PokemonCardCropperTests.swift
+  s_be1aaa5f92d2d4::t_bca081131a75ae 71-124,250-254
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Camera/PokemonCardCameraStateTests.swift
+  s_be1aaa5f92d2d4::t_2f658852029e46 21,25-41
+api/src/context.ts
+  s_be1aaa5f92d2d4::t_23dc4f49dd6624 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "eb8d055a648defd4cc0c5b0f7985fd5cc358d2d6",
+  "prompts": {},
+  "sessions": {
+    "s_be1aaa5f92d2d4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e41c4-45f6-7a62-86f9-d631037c0022",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
