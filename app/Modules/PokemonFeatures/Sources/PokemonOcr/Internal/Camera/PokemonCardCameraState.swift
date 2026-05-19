@@ -10,6 +10,7 @@ enum PokemonCardCameraState: Equatable {
     case requestingPermission
     case running
     case capturing
+    case completed
     case failed(String)
 
     var statusText: String {
@@ -19,9 +20,11 @@ enum PokemonCardCameraState: Equatable {
         case .requestingPermission:
             "Requesting camera access..."
         case .running:
-            "Position the card in view, then capture a crop."
+            "Scanning for a steady card shape..."
         case .capturing:
             "Cropping captured frame..."
+        case .completed:
+            "Card crop captured. Scan again to restart the camera."
         case .failed(let message):
             message
         }
@@ -29,18 +32,18 @@ enum PokemonCardCameraState: Equatable {
 
     var canStartCamera: Bool {
         switch self {
-        case .idle, .failed:
+        case .idle, .completed, .failed:
             true
         case .requestingPermission, .running, .capturing:
             false
         }
     }
 
-    var canCaptureFrame: Bool {
+    var canUseManualCropFallback: Bool {
         switch self {
         case .running:
             true
-        case .idle, .requestingPermission, .capturing, .failed:
+        case .idle, .requestingPermission, .capturing, .completed, .failed:
             false
         }
     }

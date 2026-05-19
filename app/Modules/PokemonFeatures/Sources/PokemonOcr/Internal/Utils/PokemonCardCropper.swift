@@ -84,6 +84,44 @@ struct PokemonCardCropper {
             ))
     }
 
+    static func cropCard(
+        from image: UIImage,
+        detectedNormalizedCardRect: CGRect,
+        configuration: Configuration = .default
+    ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
+        let normalizedImage = image.normalizedForPokemonOcr()
+        guard normalizedImage.size.width > 0, normalizedImage.size.height > 0 else {
+            return .failure(.invalidImage)
+        }
+        guard normalizedImage.cgImage != nil else {
+            return .failure(.invalidImage)
+        }
+
+        let candidate = imageRect(
+            fromVisionNormalizedRect: detectedNormalizedCardRect,
+            imageSize: normalizedImage.size
+        )
+        let cropProjection = cropProjection(
+            forCandidate: candidate,
+            imageSize: normalizedImage.size,
+            bufferFraction: configuration.bufferFraction
+        )
+        let crop = crop(rect: cropProjection.rect, fromNormalizedImage: normalizedImage)
+
+        guard crop.size.width > 0, crop.size.height > 0 else {
+            return .failure(.emptyCrop)
+        }
+
+        return .success(
+            PokemonCardCropResult(
+                originalImage: normalizedImage,
+                cropImage: crop,
+                cropRect: cropProjection.rect,
+                normalizedCropRect: normalizedRect(for: cropProjection.rect, imageSize: normalizedImage.size),
+                isClippedToImageBounds: cropProjection.isClippedToImageBounds
+            ))
+    }
+
     static func cropProjection(
         forCandidate candidate: CGRect,
         imageSize: CGSize,
@@ -138,9 +176,26 @@ struct PokemonCardCropper {
         )
     }
 
-    private static func likelyCardRegion(
+    static func imageRect(
+        fromVisionNormalizedRect rect: CGRect,
+        imageSize: CGSize
+    ) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0 else {
+            return .zero
+        }
+
+        let standardizedRect = rect.standardized
+        return CGRect(
+            x: standardizedRect.minX * imageSize.width,
+            y: (1 - standardizedRect.maxY) * imageSize.height,
+            width: standardizedRect.width * imageSize.width,
+            height: standardizedRect.height * imageSize.height
+        )
+    }
+
+    static func likelyCardRegion(
         in image: UIImage,
-        configuration: Configuration
+        configuration: Configuration = .default
     ) -> CGRect? {
         guard let analysisImage = AnalysisImage(image: image, maxDimension: configuration.maxAnalysisDimension) else {
             return nil
@@ -268,12 +323,22 @@ private struct AnalysisImage {
 
     func foregroundMask() -> [Bool] {
         pixels.map { pixel in
-            let brighterThanBorder = pixel.luminance > borderPixel.luminance + 0.16
+            let brighterThanBackground = pixel.luminance > borderPixel.luminance + 0.16
+            let darkerThanBrightBackground =
+                borderPixel.luminance > 0.55 && pixel.luminance < borderPixel.luminance - 0.12
+            let colorDifference =
+                (abs(pixel.red - borderPixel.red)
+                    + abs(pixel.green - borderPixel.green)
+                    + abs(pixel.blue - borderPixel.blue)) / 3
+            let differentColorOnBrightBackground = borderPixel.luminance > 0.55 && colorDifference > 0.14
             let colorfulForeground =
-                pixel.saturation > borderPixel.saturation + 0.20
-                && pixel.luminance > borderPixel.luminance + 0.05
+                pixel.saturation > max(0.18, borderPixel.saturation + 0.14)
+                && (brighterThanBackground || darkerThanBrightBackground || colorDifference > 0.08)
 
-            return brighterThanBorder || colorfulForeground
+            return brighterThanBackground
+                || darkerThanBrightBackground
+                || differentColorOnBrightBackground
+                || colorfulForeground
         }
     }
 

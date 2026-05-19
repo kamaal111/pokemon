@@ -68,6 +68,61 @@ struct PokemonCardCropperTests {
     }
 
     @Test
+    func `Should convert Vision normalized rectangle to image coordinates`() {
+        let rect = PokemonCardCropper.imageRect(
+            fromVisionNormalizedRect: CGRect(x: 0.20, y: 0.30, width: 0.40, height: 0.50),
+            imageSize: CGSize(width: 1_000, height: 800)
+        )
+
+        #expect(abs(rect.minX - 200) < 0.001)
+        #expect(abs(rect.minY - 160) < 0.001)
+        #expect(abs(rect.width - 400) < 0.001)
+        #expect(abs(rect.height - 400) < 0.001)
+    }
+
+    @Test
+    func `Should crop detected normalized card rect with aspect expansion and buffer`() throws {
+        let image = solidImage(size: CGSize(width: 1_000, height: 800))
+        let result = try PokemonCardCropper.cropCard(
+            from: image,
+            detectedNormalizedCardRect: CGRect(x: 0.32, y: 0.20, width: 0.28, height: 0.50),
+            configuration: .init(bufferFraction: 0.08, maxAnalysisDimension: 240)
+        ).get()
+
+        #expect(abs((result.cropRect.width / result.cropRect.height) - PokemonCardCropper.targetAspectRatio) < 0.001)
+        #expect(result.cropRect.width > 280)
+        #expect(result.cropRect.height > 400)
+        #expect(!result.isClippedToImageBounds)
+    }
+
+    @Test
+    func `Should clamp detected normalized card rect near edges and report clipping`() throws {
+        let image = solidImage(size: CGSize(width: 600, height: 800))
+        let result = try PokemonCardCropper.cropCard(
+            from: image,
+            detectedNormalizedCardRect: CGRect(x: 0.01, y: 0.02, width: 0.34, height: 0.50)
+        ).get()
+
+        #expect(result.cropRect.minX == 0)
+        #expect(result.cropRect.maxY == image.size.height)
+        #expect(result.isClippedToImageBounds)
+    }
+
+    @Test
+    func `Should never return zero-sized crop for detected normalized rect`() throws {
+        let image = solidImage(size: CGSize(width: 20, height: 20))
+        let result = try PokemonCardCropper.cropCard(
+            from: image,
+            detectedNormalizedCardRect: CGRect(x: 0, y: 0, width: 0.01, height: 0.01)
+        ).get()
+
+        #expect(result.cropRect.width > 0)
+        #expect(result.cropRect.height > 0)
+        #expect(result.cropImage.size.width > 0)
+        #expect(result.cropImage.size.height > 0)
+    }
+
+    @Test
     func `Should crop centered synthetic card`() throws {
         let cardRect = CGRect(x: 190, y: 100, width: 220, height: 308)
         let image = syntheticCardImage(cardRect: cardRect)
@@ -123,6 +178,22 @@ struct PokemonCardCropperTests {
     }
 
     @Test
+    func `Should crop darker colorful card on light tabletop`() throws {
+        let cardRect = CGRect(x: 330, y: 245, width: 260, height: 364)
+        let image = syntheticCardImage(
+            imageSize: CGSize(width: 900, height: 820),
+            cardRect: cardRect,
+            backgroundColor: UIColor(red: 0.90, green: 0.89, blue: 0.84, alpha: 1)
+        )
+        let result = try PokemonCardCropper.cropCard(from: image).get()
+
+        #expect(result.cropRect.intersection(cardRect).width > cardRect.width * 0.92)
+        #expect(result.cropRect.intersection(cardRect).height > cardRect.height * 0.92)
+        #expect(result.normalizedCropRect.width < 0.46)
+        #expect(result.normalizedCropRect.height < 0.62)
+    }
+
+    @Test
     func `Should crop real Meowth camera sample`() throws {
         let image = try sampleImage("camera-meowth")
         let result = try PokemonCardCropper.cropCard(from: image).get()
@@ -144,12 +215,13 @@ struct PokemonCardCropperTests {
         cardRect: CGRect,
         rotation: CGFloat = 0,
         drawsBorder: Bool = true,
+        backgroundColor: UIColor = UIColor(red: 0.08, green: 0.09, blue: 0.10, alpha: 1),
         backgroundRectangles: [CGRect] = []
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
         return renderer.image { context in
-            UIColor(red: 0.08, green: 0.09, blue: 0.10, alpha: 1).setFill()
+            backgroundColor.setFill()
             context.fill(CGRect(origin: .zero, size: imageSize))
 
             for rectangle in backgroundRectangles {
@@ -189,6 +261,14 @@ struct PokemonCardCropperTests {
                 ))
 
             context.cgContext.restoreGState()
+        }
+    }
+
+    private func solidImage(size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
         }
     }
 
