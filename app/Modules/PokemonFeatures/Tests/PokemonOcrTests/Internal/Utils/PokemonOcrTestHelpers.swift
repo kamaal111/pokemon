@@ -13,7 +13,11 @@ enum PokemonOcrTestError: Error {
 }
 
 func sampleImage(_ name: String) throws -> UIImage {
-    guard let url = Bundle.module.url(forResource: name, withExtension: "jpg") else {
+    let url =
+        Bundle.module.url(forResource: name, withExtension: "jpg")
+        ?? Bundle.module.url(forResource: name, withExtension: "jpg", subdirectory: "SampleCards")
+
+    guard let url else {
         throw PokemonOcrTestError.missingSample(name)
     }
 

@@ -9,8 +9,10 @@ import Foundation
 import SwiftUI
 
 public struct PokemonOcrScreen: View {
-    @State private var selectedSample = PokemonOcrSampleCard.allCases[0]
-    @State private var result: PokemonCardNameExtractionResult?
+    @State private var cameraController = PokemonCardCameraController()
+    @State private var cameraState = PokemonCardCameraState.idle
+    @State private var capturedImage: UIImage?
+    @State private var result: PokemonCardCropResult?
     @State private var errorMessage: String?
     @State private var isLoading = false
 
@@ -20,50 +22,75 @@ public struct PokemonOcrScreen: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Picker("Sample", selection: $selectedSample) {
-                        ForEach(PokemonOcrSampleCard.allCases) { sample in
-                            Text(sample.title).tag(sample)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(isLoading)
-                    .onChange(of: selectedSample) { _ in
-                        result = nil
-                        errorMessage = nil
+                    cameraSection
+
+                    if let capturedImage {
+                        imageSection(title: "Original", image: capturedImage)
                     }
 
-                    imageSection(title: "Original", image: selectedSample.image)
-
-                    if let cropImage = result?.titleCropImage {
-                        imageSection(title: "Title Crop", image: cropImage)
+                    if let cropImage = result?.cropImage {
+                        imageSection(title: "Card Crop", image: cropImage)
                     }
-
-                    Button {
-                        runOcr()
-                    } label: {
-                        HStack {
-                            if isLoading {
-                                ProgressView()
-                            }
-
-                            Text(isLoading ? "Reading" : "Run OCR")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .disabled(isLoading)
 
                     if let errorMessage {
                         Text(errorMessage)
                             .foregroundColor(.red)
                     }
 
-                    if let result {
-                        resultSection(result)
-                    }
                 }
                 .padding()
             }
             .navigationTitle("Pokemon OCR")
+            .onDisappear {
+                cameraController.stop()
+            }
+        }
+    }
+
+    private var cameraSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PokemonCardCameraPreview(session: cameraController.session)
+                .frame(height: 420)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack {
+                Button {
+                    startCamera()
+                } label: {
+                    Label(
+                        cameraState.canStartCamera ? "Start Camera" : "Camera Running",
+                        systemImage: "camera"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .disabled(!cameraState.canStartCamera || isLoading)
+
+                Button {
+                    captureFrame()
+                } label: {
+                    HStack {
+                        if isLoading {
+                            ProgressView()
+                        }
+
+                        Label(isLoading ? "Cropping" : "Crop Frame", systemImage: "crop")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .disabled(!cameraState.canCaptureFrame || isLoading)
+            }
+
+            Text(cameraState.statusText)
+                .foregroundColor(statusTextColor)
+        }
+    }
+
+    private var statusTextColor: Color {
+        switch cameraState {
+        case .failed:
+            .red
+        case .idle, .requestingPermission, .running, .capturing:
+            .secondary
         }
     }
 
@@ -79,54 +106,43 @@ public struct PokemonOcrScreen: View {
         }
     }
 
-    private func resultSection(_ result: PokemonCardNameExtractionResult) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let selectedCandidate = result.selectedCandidate {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Selected Candidate")
-                        .font(.headline)
-                    Text(selectedCandidate.text)
-                    Text(selectedCandidate.normalizedText)
-                        .font(.title3.bold())
-                }
+    private func startCamera() {
+        result = nil
+        errorMessage = nil
+        capturedImage = nil
+        cameraController.start { state in
+            cameraState = state
+            if case .failed(let message) = state {
+                errorMessage = message
             }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Candidates")
-                    .font(.headline)
-
-                ForEach(result.rawCandidates) { candidate in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(candidate.text)
-                            Text(candidate.normalizedText)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        Text(String(format: "%.2f", candidate.confidence))
-                            .font(.system(.body, design: .monospaced))
-                    }
-                }
-            }
+        } onFrameCaptured: { image in
+            cropCard(from: image)
         }
     }
 
-    private func runOcr() {
+    private func captureFrame() {
+        result = nil
+        errorMessage = nil
+        capturedImage = nil
+        cameraController.captureCurrentFrame()
+    }
+
+    private func cropCard(from image: UIImage) {
         isLoading = true
         errorMessage = nil
-        let selectedImage = selectedSample.image
+        capturedImage = image
 
         Task.detached(priority: .userInitiated) {
-            let extractionResult = await PokemonCardNameExtractor().extractName(from: selectedImage)
+            let cropResult = PokemonCardCropper.cropCard(from: image)
 
             await MainActor.run {
-                switch extractionResult {
+                switch cropResult {
                 case .success(let value):
                     result = value
+                    cameraState = .running
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                    cameraState = .failed(error.localizedDescription)
                 }
 
                 isLoading = false
