@@ -1,0 +1,49 @@
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraPreview.swift
+  s_f9229840b22bbc::t_1c02bfb6dfbb66 1-40
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Utils/PokemonOcrTestHelpers.swift
+  s_f9229840b22bbc::t_24fe95042bfede 18-20
+  s_f9229840b22bbc::t_ace6bc76a50276 16-17
+app/Pokemon.xcodeproj/project.pbxproj
+  s_f9229840b22bbc::t_f62cd7e759fc37 300,339
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Resources/SampleCards/camera-meowth.jpg
+  ai_agent 1
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Utils/PokemonCardCropper.swift
+  s_f9229840b22bbc::t_ace6bc76a50276 77-84,119-120,154-155,233-243,272-273,338-347,404-408
+  s_f9229840b22bbc::t_413f8a59a2fdfe 1-76,85-118,126-153,156-232,244-270,277-337,348-403,409-433
+  s_f9229840b22bbc::t_596bbb4cf0aaa9 121-125,271,274-276
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Models/PokemonOcrSampleCard.swift
+  s_f9229840b22bbc::t_c1504dc5b5556c 11,25-26,44-45,74-75
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Camera/PokemonCardCameraStateTests.swift
+  s_f9229840b22bbc::t_e98fe293dccc41 1-38
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Utils/PokemonCardCropperTests.swift
+  s_f9229840b22bbc::t_ace6bc76a50276 174-180,183-189
+  s_f9229840b22bbc::t_7393a286669e58 94,98-99
+  s_f9229840b22bbc::t_518555218993cb 1-93,95-97,100-173,181-182,190-208
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraState.swift
+  s_f9229840b22bbc::t_842a342df55755 1-47
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Resources/SampleCards/camera-meowth.jpg
+  ai_agent 1
+app/Modules/PokemonFeatures/Sources/PokemonOcr/PokemonOcrScreen.swift
+  s_f9229840b22bbc::t_af1f9f6d59c356 12-14,25,27-28,44-93,109-116,118-119,123-130,133,136,142,145
+  s_f9229840b22bbc::t_1070e29c521b0a 15,31-32,139
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardVideoFrameSnapshotter.swift
+  s_f9229840b22bbc::t_41a8bc9fd5856e 1-25
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraController.swift
+  s_f9229840b22bbc::t_df9a2545f1094e 1-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "b9865e997ad19f9d0c58b777255735aaff4fef69",
+  "prompts": {},
+  "sessions": {
+    "s_f9229840b22bbc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4198-bc53-7451-b5ff-1d57800ecfaf",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    }
+  }
+}
