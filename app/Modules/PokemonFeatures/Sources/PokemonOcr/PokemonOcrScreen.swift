@@ -13,6 +13,7 @@ public struct PokemonOcrScreen: View {
     @State private var cameraState = PokemonCardCameraState.idle
     @State private var capturedImage: UIImage?
     @State private var result: PokemonCardCropResult?
+    @State private var detectionReport: PokemonCardShapeDetectionReport?
     @State private var errorMessage: String?
     @State private var isLoading = false
 
@@ -49,16 +50,19 @@ public struct PokemonOcrScreen: View {
 
     private var cameraSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            PokemonCardCameraPreview(session: cameraController.session)
-                .frame(height: 420)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+            ZStack {
+                PokemonCardCameraPreview(session: cameraController.session)
+                PokemonCardShapeOverlay(report: detectionReport)
+            }
+            .frame(height: 420)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             HStack {
                 Button {
                     startCamera()
                 } label: {
                     Label(
-                        cameraState.canStartCamera ? "Start Camera" : "Camera Running",
+                        startCameraButtonTitle,
                         systemImage: "camera"
                     )
                     .frame(maxWidth: .infinity)
@@ -77,11 +81,57 @@ public struct PokemonOcrScreen: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .disabled(!cameraState.canCaptureFrame || isLoading)
+                .disabled(!cameraState.canUseManualCropFallback || isLoading)
             }
+
+            detectionFeedback
 
             Text(cameraState.statusText)
                 .foregroundColor(statusTextColor)
+        }
+    }
+
+    private var startCameraButtonTitle: String {
+        switch cameraState {
+        case .completed:
+            "Scan Again"
+        case .idle, .failed:
+            "Start Camera"
+        case .requestingPermission, .running, .capturing:
+            "Camera Running"
+        }
+    }
+
+    private var detectionFeedback: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Shape detection")
+                .font(.subheadline.weight(.semibold))
+
+            if let detectionReport, let currentDetection = detectionReport.selectedDetection {
+                Text(
+                    "Candidate confidence \(confidenceText(for: currentDetection.confidence)) "
+                        + "rect \(rectText(for: currentDetection.normalizedBoundingBox))"
+                )
+                .foregroundColor(.secondary)
+                .font(.footnote.monospacedDigit())
+            } else if let detectionReport {
+                Text(
+                    "No valid card yet. Candidates \(detectionReport.candidates.count), "
+                        + "valid \(detectionReport.validCandidateCount), "
+                        + "frame \(frameText(for: detectionReport.frameSize)). "
+                        + bestRejectedText(for: detectionReport)
+                )
+                .foregroundColor(.secondary)
+                .font(.footnote.monospacedDigit())
+            } else if cameraState == .running {
+                Text("No card-shaped rectangle yet.")
+                    .foregroundColor(.secondary)
+                    .font(.footnote)
+            } else {
+                Text("Start scanning to see candidate rectangle feedback.")
+                    .foregroundColor(.secondary)
+                    .font(.footnote)
+            }
         }
     }
 
@@ -89,7 +139,7 @@ public struct PokemonOcrScreen: View {
         switch cameraState {
         case .failed:
             .red
-        case .idle, .requestingPermission, .running, .capturing:
+        case .idle, .requestingPermission, .running, .capturing, .completed:
             .secondary
         }
     }
@@ -110,13 +160,18 @@ public struct PokemonOcrScreen: View {
         result = nil
         errorMessage = nil
         capturedImage = nil
+        detectionReport = nil
         cameraController.start { state in
             cameraState = state
             if case .failed(let message) = state {
                 errorMessage = message
             }
+        } onDetectionReportChange: { report in
+            detectionReport = report
         } onFrameCaptured: { image in
             cropCard(from: image)
+        } onDetectedFrameCaptured: { image, detection in
+            cropDetectedCard(from: image, detection: detection)
         }
     }
 
@@ -124,6 +179,7 @@ public struct PokemonOcrScreen: View {
         result = nil
         errorMessage = nil
         capturedImage = nil
+        detectionReport = nil
         cameraController.captureCurrentFrame()
     }
 
@@ -148,6 +204,70 @@ public struct PokemonOcrScreen: View {
                 isLoading = false
             }
         }
+    }
+
+    private func cropDetectedCard(from image: UIImage, detection: PokemonCardShapeDetection) {
+        isLoading = true
+        errorMessage = nil
+        capturedImage = image
+
+        Task.detached(priority: .userInitiated) {
+            let cropResult = PokemonCardCropper.cropCard(
+                from: image,
+                detectedNormalizedCardRect: detection.normalizedBoundingBox
+            )
+
+            await MainActor.run {
+                switch cropResult {
+                case .success(let value):
+                    result = value
+                    cameraState = .completed
+                case .failure(let error):
+                    errorMessage = error.localizedDescription
+                    cameraState = .failed(error.localizedDescription)
+                }
+
+                isLoading = false
+            }
+        }
+    }
+
+    private func confidenceText(for confidence: Float) -> String {
+        confidence.formatted(.number.precision(.fractionLength(2)))
+    }
+
+    private func rectText(for rect: CGRect) -> String {
+        let standardizedRect = rect.standardized
+        return [
+            standardizedRect.minX,
+            standardizedRect.minY,
+            standardizedRect.width,
+            standardizedRect.height,
+        ]
+        .map { value in Double(value).formatted(.number.precision(.fractionLength(2))) }
+        .joined(separator: ", ")
+    }
+
+    private func frameText(for frameSize: CGSize) -> String {
+        "\(Int(frameSize.width))x\(Int(frameSize.height))"
+    }
+
+    private func bestRejectedText(for report: PokemonCardShapeDetectionReport) -> String {
+        guard let candidate = report.bestRejectedCandidate else {
+            return ""
+        }
+
+        let score = Double(candidate.score).formatted(.number.precision(.fractionLength(2)))
+        let threshold = Double(PokemonCardShapeDetector.Configuration.default.minimumAcceptedScore).formatted(
+            .number.precision(.fractionLength(2))
+        )
+        let reasons = candidate.rejectionReasons.map(\.rawValue).joined(separator: ",")
+
+        if candidate.score < PokemonCardShapeDetector.Configuration.default.minimumAcceptedScore {
+            return "Best rejected: score \(score) < \(threshold), \(reasons)."
+        }
+
+        return "Best rejected: score \(score), \(reasons)."
     }
 }
 
