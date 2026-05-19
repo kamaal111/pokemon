@@ -1,0 +1,32 @@
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Models/PokemonOcrSampleCard.swift
+  s_f9229840b22bbc::t_c1504dc5b5556c 11,25-26,44-45,74-75
+app/Modules/PokemonFeatures/Sources/PokemonOcr/PokemonOcrScreen.swift
+  s_f9229840b22bbc::t_1070e29c521b0a 13,37-38,42,49,79,85,88
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Utils/PokemonCardCropper.swift
+  s_f9229840b22bbc::t_ace6bc76a50276 77-84,119-120,154-155,233-243,272-273,338-347,404-408
+  s_f9229840b22bbc::t_413f8a59a2fdfe 1-76,85-118,126-153,156-232,244-270,277-337,348-403,409-433
+  s_f9229840b22bbc::t_596bbb4cf0aaa9 121-125,271,274-276
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Utils/PokemonOcrTestHelpers.swift
+  s_f9229840b22bbc::t_24fe95042bfede 18-20
+  s_f9229840b22bbc::t_ace6bc76a50276 16-17
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Utils/PokemonCardCropperTests.swift
+  s_f9229840b22bbc::t_7393a286669e58 94,98-99
+  s_f9229840b22bbc::t_518555218993cb 1-93,95-97,100-173,181-182,190-208
+  s_f9229840b22bbc::t_ace6bc76a50276 174-180,183-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "74d909302dcf286b82b34702b9d803bbb449e5e0",
+  "prompts": {},
+  "sessions": {
+    "s_f9229840b22bbc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4198-bc53-7451-b5ff-1d57800ecfaf",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
