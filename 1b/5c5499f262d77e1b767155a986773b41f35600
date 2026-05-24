@@ -1,0 +1,19 @@
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Services/PokemonCardShapeDetectorTests.swift
+  s_5b3262e8003ab9::t_8b11ad5091fee6 72-81,86-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "1b5c5499f262d77e1b767155a986773b41f35600",
+  "prompts": {},
+  "sessions": {
+    "s_5b3262e8003ab9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5b3a-65fc-7743-a0bd-9c113877ffc9",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
