@@ -1,0 +1,47 @@
+app/Modules/PokemonFeatures/Sources/PokemonOcr/PokemonOcrScreen.swift
+  s_be1aaa5f92d2d4::t_75dd58a6d7ca8c 16,53-58,110,117-121,162,168-169,181,249-251
+  s_be1aaa5f92d2d4::t_1119e14f49979e 122-124
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Camera/PokemonCardShapeOverlayTests.swift
+  s_be1aaa5f92d2d4::t_913358e2c64c93 1-53
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardCameraController.swift
+  s_be1aaa5f92d2d4::t_338bf89002c099 274
+  s_be1aaa5f92d2d4::t_74e01533af0544 10,27,29,33,38,41,73,78,91,96,117,119,215-217,228,232-233,237-241,243,258-273
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Services/PokemonCardShapeDetector.swift
+  s_be1aaa5f92d2d4::t_b4639d2bf6e7e6 383-384,387-388
+  s_be1aaa5f92d2d4::t_2ac5be20f9c8eb 532
+  s_be1aaa5f92d2d4::t_4fc11d1461df8b 187,201-205,209-231,316-382,385-386,389-530
+  s_be1aaa5f92d2d4::t_aadace088ea2fd 191-193,232-259,261-276,279,281-293
+  s_be1aaa5f92d2d4::t_7a3301cfd70e81 17-38
+  s_be1aaa5f92d2d4::t_729df365feb921 76-83,101-106,117-122,125-130,133-138
+app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Camera/PokemonCardShapeOverlay.swift
+  s_be1aaa5f92d2d4::t_251b7bb4acd070 1-128
+app/Modules/PokemonFeatures/Tests/PokemonOcrTests/Internal/Services/PokemonCardShapeDetectorTests.swift
+  s_5b3262e8003ab9::t_8b11ad5091fee6 74-83,102-106
+  s_be1aaa5f92d2d4::t_20abd494f407a5 59-61
+  s_be1aaa5f92d2d4::t_87954954754bf8 84,86-88,92-94,96-97
+  s_be1aaa5f92d2d4::t_c192ace4db4921 85,89-91,95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "d259d5ad895694297e313da868bfc68de00082ac",
+  "prompts": {},
+  "sessions": {
+    "s_5b3262e8003ab9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5b3a-65fc-7743-a0bd-9c113877ffc9",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    },
+    "s_be1aaa5f92d2d4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e41c4-45f6-7a62-86f9-d631037c0022",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    }
+  }
+}
