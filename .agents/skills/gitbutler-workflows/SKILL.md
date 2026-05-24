@@ -67,6 +67,30 @@ Use this skill when the repository is on `gitbutler/workspace` or when the user 
 - If `gh auth status` is invalid, either use the GitHub connector or stop and ask the user to re-authenticate with `gh auth login`.
 - Reuse the commit message as the PR body when the user asks for a single source of truth.
 
+## Checking Out PRs For Testing
+
+- When the user asks to test a PR locally, first fetch the PR head into a stable local remote-tracking ref:
+  - `git fetch origin pull/<number>/head:refs/remotes/origin/pr/<number>`
+  - If the fetch is rejected as non-fast-forward, the PR was probably force-pushed; refetch with a leading `+`:
+    `git fetch origin +pull/<number>/head:refs/remotes/origin/pr/<number>`
+- Before changing the worktree, verify branch and cleanliness with `git status --short --branch`, and compare `HEAD` with `origin/pr/<number>` using `git rev-parse HEAD origin/pr/<number>`.
+- Prefer GitButler-native application first when the repository is on `gitbutler/workspace`:
+  - Try `but branch list -j` or `but status -j` to find the branch name GitButler recognizes.
+  - Prefer applying a real local branch name when one exists, for example `but apply codex/example-branch`.
+  - Be cautious with raw PR refs such as `origin/pr/<number>` or GitButler's synthetic `pr/<number>` branch names; in this repository they have triggered GitButler CLI panics or stale workspace state.
+- If `but apply`, `but unapply`, or `but pick` fails because of malformed stack metadata, do not discard or rewrite local commits just to make a testing checkout work.
+  - Known symptoms include `insertion index ... should be <= len`, `Stack for '<id>' not found in workspace`, or `Currently cherry-apply only works with stacks that have ids`.
+  - In that case, use a plain Git testing branch as the safe fallback:
+    `git switch -c codex/test-pr-<number>-latest origin/pr/<number>`
+  - If a previous testing branch exists and the PR was force-pushed, create a fresh branch at the new PR head rather than resetting the old branch unless the user explicitly asks to discard it.
+- If Git refuses to switch because the exact branch is already checked out in another worktree, create a differently named local testing branch at `origin/pr/<number>`.
+- After checkout, prove the workspace matches the PR with:
+  - `git status --short --branch`
+  - `git branch --show-current`
+  - `git rev-parse HEAD origin/pr/<number>`
+  - `git diff --quiet HEAD origin/pr/<number>`
+- Tell the user clearly when the result is a plain Git checkout rather than an applied GitButler virtual branch. Git may print that the workspace left GitButler mode and that `but setup` is needed to return.
+
 ## Safety Checks
 
 - Before mutating anything, verify whether unassigned changes exist in `zz` and whether they belong to the requested branch.
