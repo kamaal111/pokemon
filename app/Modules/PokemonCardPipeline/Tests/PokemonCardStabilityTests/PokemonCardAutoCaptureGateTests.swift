@@ -1,6 +1,6 @@
 //
 //  PokemonCardAutoCaptureGateTests.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
@@ -8,7 +8,8 @@
 import CoreGraphics
 import Testing
 
-@testable import PokemonOcr
+@testable import PokemonCardDetection
+@testable import PokemonCardStability
 
 @Suite("PokemonCardAutoCaptureGate Tests")
 struct PokemonCardAutoCaptureGateTests {

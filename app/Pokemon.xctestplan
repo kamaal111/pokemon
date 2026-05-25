@@ -24,6 +24,27 @@
         "identifier" : "PokemonOcrTests",
         "name" : "PokemonOcrTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonCardPipeline",
+        "identifier" : "PokemonCardCroppingTests",
+        "name" : "PokemonCardCroppingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonCardPipeline",
+        "identifier" : "PokemonCardDetectionTests",
+        "name" : "PokemonCardDetectionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonCardPipeline",
+        "identifier" : "PokemonCardStabilityTests",
+        "name" : "PokemonCardStabilityTests"
+      }
     }
   ],
   "version" : 1

@@ -6,6 +6,7 @@
 //
 
 import CoreImage
+import PokemonCardImageProcessing
 import UIKit
 
 enum PokemonCardTitleCropError: LocalizedError, Equatable {
@@ -89,7 +90,7 @@ struct PokemonCardTitleCropper {
         from image: UIImage,
         configuration: Configuration = .default
     ) -> Result<PokemonCardTitleCrop, PokemonCardTitleCropError> {
-        let normalizedImage = image.normalizedForPokemonOcr()
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         let titleRect = titleRect(for: normalizedImage.size, configuration: configuration)
         let crop = crop(rect: titleRect, fromNormalizedImage: normalizedImage)
 
@@ -100,7 +101,7 @@ struct PokemonCardTitleCropper {
     }
 
     static func cropObservationRegion(_ region: CGRect, from image: UIImage) -> PokemonCardTitleCrop {
-        let normalizedImage = image.normalizedForPokemonOcr()
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         let rect = CGRect(
             x: region.minX * normalizedImage.size.width,
             y: (1 - region.maxY) * normalizedImage.size.height,
@@ -135,17 +136,6 @@ struct PokemonCardTitleCropper {
 }
 
 extension UIImage {
-    func normalizedForPokemonOcr() -> UIImage {
-        if imageOrientation == .up, cgImage != nil {
-            return self
-        }
-
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { _ in
-            draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
-
     func enhancedTitleCropForPokemonOcr() -> UIImage {
         enhancedForPokemonOcr(contrast: 2.2, scaleFactor: 3)
     }
@@ -158,7 +148,7 @@ extension UIImage {
         contrast: CGFloat,
         scaleFactor: CGFloat
     ) -> UIImage {
-        let normalizedImage = normalizedForPokemonOcr()
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(self)
         guard let inputCgImage = normalizedImage.cgImage else { return normalizedImage }
 
         let inputImage = CIImage(cgImage: inputCgImage)

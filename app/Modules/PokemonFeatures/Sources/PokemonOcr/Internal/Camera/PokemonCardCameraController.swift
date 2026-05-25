@@ -8,6 +8,8 @@
 @preconcurrency import AVFoundation
 import CoreImage
 import OSLog
+import PokemonCardDetection
+import PokemonCardStability
 import QuartzCore
 import UIKit
 
@@ -113,7 +115,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
 
             self.latestFrame = nil
             self.detectionThrottler.reset()
-            self.autoCaptureGate.reset()
+            self.autoCaptureGate = PokemonCardAutoCaptureGate()
             self.emitDetectionReport(nil)
             if !self.session.isRunning {
                 self.logger.notice("Card scanner session starting")

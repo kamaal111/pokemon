@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import PokemonCardDetection
 import SwiftUI
 
 enum PokemonCardShapeOverlayGeometry {

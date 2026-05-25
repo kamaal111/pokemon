@@ -1,14 +1,15 @@
 //
 //  PokemonCardAutoCaptureGate.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
 
 import CoreGraphics
+import PokemonCardDetection
 
-struct PokemonCardAutoCaptureGate {
-    struct Configuration {
+public struct PokemonCardAutoCaptureGate {
+    struct Configuration: Sendable {
         let requiredStableDetections: Int
         let maximumCenterDrift: CGFloat
         let minimumIntersectionOverUnion: CGFloat
@@ -22,17 +23,17 @@ struct PokemonCardAutoCaptureGate {
         )
     }
 
-    let configuration: Configuration
+    private let configuration: Configuration
 
     private var previousDetection: PokemonCardShapeDetection?
     private var stableDetectionCount = 0
     private var hasCaptured = false
 
-    init(configuration: Configuration = .default) {
-        self.configuration = configuration
+    public init() {
+        configuration = .default
     }
 
-    mutating func shouldCapture(_ detection: PokemonCardShapeDetection?) -> Bool {
+    public mutating func shouldCapture(_ detection: PokemonCardShapeDetection?) -> Bool {
         guard !hasCaptured else {
             return false
         }

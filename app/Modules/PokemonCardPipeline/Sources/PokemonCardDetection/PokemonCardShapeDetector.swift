@@ -1,17 +1,20 @@
 //
 //  PokemonCardShapeDetector.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
 
 import CoreGraphics
+import PokemonCardImageProcessing
 import UIKit
 import Vision
 
-struct PokemonCardShapeDetection: Equatable {
-    let normalizedBoundingBox: CGRect
-    let confidence: Float
+private let pokemonCardTargetAspectRatio: CGFloat = 63 / 88
+
+public struct PokemonCardShapeDetection: Equatable, Sendable {
+    public let normalizedBoundingBox: CGRect
+    public let confidence: Float
     let normalizedCorners: PokemonCardShapeQuadrilateral?
 
     init(
@@ -25,16 +28,23 @@ struct PokemonCardShapeDetection: Equatable {
     }
 }
 
-enum PokemonCardShapeDetectionSource: String, Equatable {
+public enum PokemonCardShapeDetectionSource: String, Equatable, Sendable {
     case vision = "Vision"
     case fallback = "Fallback"
 }
 
-struct PokemonCardShapeQuadrilateral: Equatable {
+struct PokemonCardShapeQuadrilateral: Equatable, Sendable {
     let topLeft: CGPoint
     let topRight: CGPoint
     let bottomRight: CGPoint
     let bottomLeft: CGPoint
+
+    init(topLeft: CGPoint, topRight: CGPoint, bottomRight: CGPoint, bottomLeft: CGPoint) {
+        self.topLeft = topLeft
+        self.topRight = topRight
+        self.bottomRight = bottomRight
+        self.bottomLeft = bottomLeft
+    }
 
     var boundingBox: CGRect {
         let minimumX = min(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x)
@@ -95,16 +105,16 @@ struct PokemonCardShapeQuadrilateral: Equatable {
     }
 }
 
-struct PokemonCardShapeCandidateMetrics: Equatable {
-    let confidence: Float
-    let areaFraction: CGFloat
-    let boundingAspectRatio: CGFloat
-    let sideAspectRatio: CGFloat?
-    let contentScore: CGFloat
-    let shapeScore: CGFloat
+public struct PokemonCardShapeCandidateMetrics: Equatable, Sendable {
+    public let confidence: Float
+    public let areaFraction: CGFloat
+    public let boundingAspectRatio: CGFloat
+    public let sideAspectRatio: CGFloat?
+    public let contentScore: CGFloat
+    public let shapeScore: CGFloat
 }
 
-enum PokemonCardShapeCandidateRejectionReason: String, Equatable {
+public enum PokemonCardShapeCandidateRejectionReason: String, Equatable, Sendable {
     case lowConfidence
     case invalidBounds
     case tooSmall
@@ -113,7 +123,7 @@ enum PokemonCardShapeCandidateRejectionReason: String, Equatable {
     case poorScore
 }
 
-struct PokemonCardShapeCandidateEvaluation: Equatable {
+struct PokemonCardShapeCandidateEvaluation: Equatable, Sendable {
     let score: CGFloat
     let metrics: PokemonCardShapeCandidateMetrics
     let rejectionReasons: [PokemonCardShapeCandidateRejectionReason]
@@ -123,39 +133,61 @@ struct PokemonCardShapeCandidateEvaluation: Equatable {
     }
 }
 
-struct PokemonCardShapeDetectionCandidate: Equatable, Identifiable {
-    let id: Int
-    let detection: PokemonCardShapeDetection
-    let source: PokemonCardShapeDetectionSource
+public struct PokemonCardShapeDetectionCandidate: Equatable, Identifiable, Sendable {
+    public let id: Int
+    public let detection: PokemonCardShapeDetection
+    public let source: PokemonCardShapeDetectionSource
     let evaluation: PokemonCardShapeCandidateEvaluation
 
-    var isValid: Bool {
+    init(
+        id: Int,
+        detection: PokemonCardShapeDetection,
+        source: PokemonCardShapeDetectionSource,
+        evaluation: PokemonCardShapeCandidateEvaluation
+    ) {
+        self.id = id
+        self.detection = detection
+        self.source = source
+        self.evaluation = evaluation
+    }
+
+    public var isValid: Bool {
         evaluation.isAccepted
     }
 
-    var score: CGFloat {
+    public var score: CGFloat {
         evaluation.score
     }
 
-    var metrics: PokemonCardShapeCandidateMetrics {
+    public var metrics: PokemonCardShapeCandidateMetrics {
         evaluation.metrics
     }
 
-    var rejectionReasons: [PokemonCardShapeCandidateRejectionReason] {
+    public var rejectionReasons: [PokemonCardShapeCandidateRejectionReason] {
         evaluation.rejectionReasons
     }
 }
 
-struct PokemonCardShapeDetectionReport: Equatable {
-    let frameSize: CGSize
-    let candidates: [PokemonCardShapeDetectionCandidate]
-    let selectedDetection: PokemonCardShapeDetection?
+public struct PokemonCardShapeDetectionReport: Equatable, Sendable {
+    public let frameSize: CGSize
+    public let candidates: [PokemonCardShapeDetectionCandidate]
+    public let selectedDetection: PokemonCardShapeDetection?
 
-    var validCandidateCount: Int {
+    init(
+        frameSize: CGSize,
+        candidates: [PokemonCardShapeDetectionCandidate],
+        selectedDetection: PokemonCardShapeDetection?
+    ) {
+        self.frameSize = frameSize
+        self.candidates = candidates
+        self.selectedDetection = selectedDetection
+    }
+
+    public var validCandidateCount: Int {
         candidates.filter(\.isValid).count
     }
 
-    var bestRejectedCandidate: PokemonCardShapeDetectionCandidate? {
+    public var bestRejectedCandidate: PokemonCardShapeDetectionCandidate? {
         candidates
             .filter { !$0.isValid }
             .sorted { $0.score > $1.score }
@@ -163,11 +195,11 @@ struct PokemonCardShapeDetectionReport: Equatable {
     }
 }
 
-enum PokemonCardShapeDetectionError: LocalizedError, Equatable {
+public enum PokemonCardShapeDetectionError: LocalizedError, Equatable, Sendable {
     case invalidImage
     case visionRequestFailed
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidImage:
             "The camera frame could not be analyzed."
@@ -177,8 +209,8 @@ enum PokemonCardShapeDetectionError: LocalizedError, Equatable {
     }
 }
 
-struct PokemonCardShapeDetector {
-    struct Configuration {
+public struct PokemonCardShapeDetector {
+    struct Configuration: Sendable {
         let minimumConfidence: Float
         let minimumAreaFraction: CGFloat
         let maximumAreaFraction: CGFloat
@@ -208,11 +240,17 @@ struct PokemonCardShapeDetector {
             .map(\.selectedDetection)
     }
 
+    public static func detectCardShapeReport(
+        in image: UIImage
+    ) -> Result<PokemonCardShapeDetectionReport, PokemonCardShapeDetectionError> {
+        detectCardShapeReport(in: image, configuration: .default)
+    }
+
     static func detectCardShapeReport(
         in image: UIImage,
         configuration: Configuration = .default
     ) -> Result<PokemonCardShapeDetectionReport, PokemonCardShapeDetectionError> {
-        let normalizedImage = image.normalizedForPokemonOcr()
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         guard let cgImage = normalizedImage.cgImage else {
             return .failure(.invalidImage)
         }
@@ -443,9 +481,7 @@ struct PokemonCardShapeDetector {
         in image: UIImage,
         configuration: Configuration
     ) -> PokemonCardShapeDetection? {
-        let candidate =
-            shapeFallbackCandidate(in: image, configuration: configuration)
-            ?? PokemonCardCropper.likelyCardRegion(in: image)
+        let candidate = shapeFallbackCandidate(in: image, configuration: configuration)
         guard let candidate else { return nil }
 
         return PokemonCardShapeDetection(
@@ -510,7 +546,7 @@ struct PokemonCardShapeDetector {
             return clamped(1 - ((aspectRatio - configuration.maximumToleratedAspectRatio) / 0.20))
         }
 
-        let target = PokemonCardCropper.targetAspectRatio
+        let target = pokemonCardTargetAspectRatio
         let maximumDeviation = max(
             target - configuration.minimumToleratedAspectRatio,
             configuration.maximumToleratedAspectRatio - target
@@ -724,8 +760,8 @@ private struct ShapeFallbackAnalysisImage {
         let imageArea = CGFloat(width * height)
         let areaFraction = CGFloat(component.pixelCount) / imageArea
         let aspectRatio = rect.width / rect.height
-        let aspectDeviation = abs(aspectRatio - PokemonCardCropper.targetAspectRatio)
-        let aspectScore = max(0, 1 - min(aspectDeviation / PokemonCardCropper.targetAspectRatio, 1))
+        let aspectDeviation = abs(aspectRatio - pokemonCardTargetAspectRatio)
+        let aspectScore = max(0, 1 - min(aspectDeviation / pokemonCardTargetAspectRatio, 1))
 
         return (areaFraction * 3) + (aspectScore * 2)
     }

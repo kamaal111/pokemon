@@ -1,19 +1,20 @@
 //
 //  PokemonCardCropper.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
 
 import CoreGraphics
+import PokemonCardImageProcessing
 import UIKit
 
-enum PokemonCardCropError: LocalizedError, Equatable {
+public enum PokemonCardCropError: LocalizedError, Equatable {
     case invalidImage
     case cardRegionNotFound
     case emptyCrop
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidImage:
             "The card image could not be analyzed."
@@ -25,82 +26,48 @@ enum PokemonCardCropError: LocalizedError, Equatable {
     }
 }
 
-struct PokemonCardCropResult {
-    let originalImage: UIImage
-    let cropImage: UIImage
-    let cropRect: CGRect
-    let normalizedCropRect: CGRect
-    let isClippedToImageBounds: Bool
+public struct PokemonCardCropResult {
+    public let originalImage: UIImage
+    public let cropImage: UIImage
+    public let cropRect: CGRect
+    public let normalizedCropRect: CGRect
+    public let isClippedToImageBounds: Bool
 }
 
-struct PokemonCardCropper {
-    struct Configuration {
+public struct PokemonCardCropper {
+    struct Configuration: Sendable {
         let bufferFraction: CGFloat
         let maxAnalysisDimension: CGFloat
 
-        static let `default` = Configuration(
-            bufferFraction: 0.08,
-            maxAnalysisDimension: 240
-        )
+        static let `default` = Configuration(bufferFraction: 0.08, maxAnalysisDimension: 240)
     }
 
     static let targetAspectRatio: CGFloat = 63 / 88
 
     private init() {}
 
-    static func cropCard(
+    public static func cropCard(
         from image: UIImage,
-        configuration: Configuration = .default
+        detectedNormalizedCardRect: CGRect? = nil
     ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
-        let normalizedImage = image.normalizedForPokemonOcr()
-        guard normalizedImage.size.width > 0, normalizedImage.size.height > 0 else {
-            return .failure(.invalidImage)
-        }
-        guard normalizedImage.cgImage != nil else {
-            return .failure(.invalidImage)
-        }
-        guard let candidate = likelyCardRegion(in: normalizedImage, configuration: configuration) else {
-            return .failure(.cardRegionNotFound)
-        }
-
-        let cropProjection = cropProjection(
-            forCandidate: candidate,
-            imageSize: normalizedImage.size,
-            bufferFraction: configuration.bufferFraction
-        )
-        let crop = crop(rect: cropProjection.rect, fromNormalizedImage: normalizedImage)
-
-        guard crop.size.width > 0, crop.size.height > 0 else {
-            return .failure(.emptyCrop)
-        }
-
-        return .success(
-            PokemonCardCropResult(
-                originalImage: normalizedImage,
-                cropImage: crop,
-                cropRect: cropProjection.rect,
-                normalizedCropRect: normalizedRect(for: cropProjection.rect, imageSize: normalizedImage.size),
-                isClippedToImageBounds: cropProjection.isClippedToImageBounds
-            ))
+        cropCard(from: image, detectedNormalizedCardRect: detectedNormalizedCardRect, configuration: .default)
     }
 
     static func cropCard(
         from image: UIImage,
-        detectedNormalizedCardRect: CGRect,
-        configuration: Configuration = .default
+        detectedNormalizedCardRect: CGRect? = nil,
+        configuration: Configuration
     ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
-        let normalizedImage = image.normalizedForPokemonOcr()
-        guard normalizedImage.size.width > 0, normalizedImage.size.height > 0 else {
-            return .failure(.invalidImage)
-        }
-        guard normalizedImage.cgImage != nil else {
-            return .failure(.invalidImage)
-        }
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
+        guard normalizedImage.size.width > 0, normalizedImage.size.height > 0 else { return .failure(.invalidImage) }
+        guard normalizedImage.cgImage != nil else { return .failure(.invalidImage) }
 
-        let candidate = imageRect(
-            fromVisionNormalizedRect: detectedNormalizedCardRect,
-            imageSize: normalizedImage.size
-        )
+        let candidate =
+            detectedNormalizedCardRect.map {
+                imageRect(fromVisionNormalizedRect: $0, imageSize: normalizedImage.size)
+            } ?? likelyCardRegion(in: normalizedImage, configuration: configuration)
+        guard let candidate else { return .failure(.cardRegionNotFound) }
+
         let cropProjection = cropProjection(
             forCandidate: candidate,
             imageSize: normalizedImage.size,
@@ -108,9 +75,7 @@ struct PokemonCardCropper {
         )
         let crop = crop(rect: cropProjection.rect, fromNormalizedImage: normalizedImage)
 
-        guard crop.size.width > 0, crop.size.height > 0 else {
-            return .failure(.emptyCrop)
-        }
+        guard crop.size.width > 0, crop.size.height > 0 else { return .failure(.emptyCrop) }
 
         return .success(
             PokemonCardCropResult(
@@ -127,20 +92,16 @@ struct PokemonCardCropper {
         imageSize: CGSize,
         bufferFraction: CGFloat = Configuration.default.bufferFraction
     ) -> (rect: CGRect, isClippedToImageBounds: Bool) {
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return (.zero, false)
-        }
-        guard candidate.width > 0, candidate.height > 0 else {
-            return (.zero, false)
-        }
+        guard imageSize.width > 0, imageSize.height > 0 else { return (.zero, false) }
+        guard candidate.width > 0, candidate.height > 0 else { return (.zero, false) }
 
         let candidateAspectRatio = candidate.width / candidate.height
-        let fittedSize: CGSize
-        if candidateAspectRatio > targetAspectRatio {
-            fittedSize = CGSize(width: candidate.width, height: candidate.width / targetAspectRatio)
-        } else {
-            fittedSize = CGSize(width: candidate.height * targetAspectRatio, height: candidate.height)
-        }
+        let fittedSize =
+            if candidateAspectRatio > targetAspectRatio {
+                CGSize(width: candidate.width, height: candidate.width / targetAspectRatio)
+            } else {
+                CGSize(width: candidate.height * targetAspectRatio, height: candidate.height)
+            }
 
         let bufferedSize = CGSize(
             width: fittedSize.width * (1 + (bufferFraction * 2)),
@@ -163,10 +124,9 @@ struct PokemonCardCropper {
         return (clippedRect, isClippedToImageBounds)
     }
 
-    static func normalizedRect(for rect: CGRect, imageSize: CGSize) -> CGRect {
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return .zero
-        }
+    private static func normalizedRect(for rect: CGRect, imageSize: CGSize) -> CGRect {
+        guard imageSize.width > 0 else { return .zero }
+        guard imageSize.height > 0 else { return .zero }
 
         return CGRect(
             x: rect.minX / imageSize.width,
@@ -180,11 +140,11 @@ struct PokemonCardCropper {
         fromVisionNormalizedRect rect: CGRect,
         imageSize: CGSize
     ) -> CGRect {
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return .zero
-        }
+        guard imageSize.width > 0 else { return .zero }
+        guard imageSize.height > 0 else { return .zero }
 
         let standardizedRect = rect.standardized
+
         return CGRect(
             x: standardizedRect.minX * imageSize.width,
             y: (1 - standardizedRect.maxY) * imageSize.height,
@@ -263,6 +223,8 @@ private struct AnalysisImage {
         let green: CGFloat
         let blue: CGFloat
         let saturation: CGFloat
+
+        static let zero = Pixel(luminance: 0, red: 0, green: 0, blue: 0, saturation: 0)
     }
 
     let width: Int
@@ -282,22 +244,18 @@ private struct AnalysisImage {
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
         var bytes = [UInt8](repeating: 0, count: height * bytesPerRow)
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
-            return nil
-        }
-        guard
-            let context = CGContext(
-                data: &bytes,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: bytesPerRow,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            )
-        else {
-            return nil
-        }
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+
+        let context = CGContext(
+            data: &bytes,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        guard let context else { return nil }
 
         context.interpolationQuality = .medium
         context.draw(sourceImage, in: CGRect(x: 0, y: 0, width: width, height: height))
@@ -466,12 +424,12 @@ private struct AnalysisImage {
 
         for y in 0..<height {
             for x in 0..<width {
-                guard
+                let isMatching =
                     x < borderThickness
-                        || y < borderThickness
-                        || x >= width - borderThickness
-                        || y >= height - borderThickness
-                else { continue }
+                    || y < borderThickness
+                    || x >= width - borderThickness
+                    || y >= height - borderThickness
+                guard isMatching else { continue }
 
                 let pixel = pixels[(y * width) + x]
                 red += pixel.red
@@ -483,9 +441,7 @@ private struct AnalysisImage {
             }
         }
 
-        guard count > 0 else {
-            return Pixel(luminance: 0, red: 0, green: 0, blue: 0, saturation: 0)
-        }
+        guard count > 0 else { return .zero }
 
         return Pixel(
             luminance: luminance / count,

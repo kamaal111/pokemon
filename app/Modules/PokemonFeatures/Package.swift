@@ -10,11 +10,18 @@ let package = Package(
     products: [
         .library(name: "PokemonOcr", targets: ["PokemonOcr"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(path: "../PokemonCardPipeline")
+    ],
     targets: [
         .target(
             name: "PokemonOcr",
-            dependencies: [],
+            dependencies: [
+                .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardStability", package: "PokemonCardPipeline"),
+            ],
             resources: [
                 .process("Internal/Resources")
             ],
@@ -24,7 +31,13 @@ let package = Package(
         ),
         .testTarget(
             name: "PokemonOcrTests",
-            dependencies: ["PokemonOcr"],
+            dependencies: [
+                "PokemonOcr",
+                .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardStability", package: "PokemonCardPipeline"),
+            ],
             resources: [
                 .process("Internal/Resources")
             ],
