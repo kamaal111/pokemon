@@ -8,6 +8,7 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.iOS(.v16)],
     products: [
+        .library(name: "PokemonCardPipeline", targets: ["PokemonCardPipeline"]),
         .library(name: "PokemonCardImageProcessing", targets: ["PokemonCardImageProcessing"]),
         .library(name: "PokemonCardCropping", targets: ["PokemonCardCropping"]),
         .library(name: "PokemonCardDetection", targets: ["PokemonCardDetection"]),
@@ -41,6 +42,17 @@ let package = Package(
                 .treatAllWarnings(as: .error)
             ]
         ),
+        .target(
+            name: "PokemonCardPipeline",
+            dependencies: [
+                "PokemonCardCropping",
+                "PokemonCardDetection",
+                "PokemonCardStability",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
         .testTarget(
             name: "PokemonCardCroppingTests",
             dependencies: ["PokemonCardCropping"],
@@ -69,6 +81,17 @@ let package = Package(
             dependencies: [
                 "PokemonCardDetection",
                 "PokemonCardStability",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .testTarget(
+            name: "PokemonCardPipelineTests",
+            dependencies: [
+                "PokemonCardPipeline",
+                "PokemonCardCropping",
+                "PokemonCardDetection",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
