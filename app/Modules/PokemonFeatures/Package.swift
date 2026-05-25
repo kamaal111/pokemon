@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "PokemonOcr", targets: ["PokemonOcr"])
     ],
     dependencies: [
-        .package(path: "../PokemonCardPipeline")
+        .package(url: "https://github.com/Kamaalio/KamaalSwift.git", from: "3.5.0"),
+        .package(path: "../PokemonCardPipeline"),
     ],
     targets: [
         .target(
@@ -21,6 +22,9 @@ let package = Package(
                 .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardTextExtraction", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardUtilities", package: "PokemonCardPipeline"),
+                .product(name: "KamaalLogger", package: "KamaalSwift"),
             ],
             resources: [
                 .process("Internal/Resources")
@@ -37,6 +41,8 @@ let package = Package(
                 .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
+                .product(name: "PokemonCardTextExtraction", package: "PokemonCardPipeline"),
+                .product(name: "KamaalLogger", package: "KamaalSwift"),
             ],
             resources: [
                 .process("Internal/Resources")

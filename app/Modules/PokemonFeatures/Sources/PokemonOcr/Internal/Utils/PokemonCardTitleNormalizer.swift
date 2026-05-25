@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PokemonCardUtilities
 
 enum PokemonCardTitleNormalizer {
     static func normalize(_ text: String) -> String {
@@ -105,24 +106,24 @@ enum PokemonCardTitleNormalizer {
     /// Matches Hiragana scalars so we can recognize Japanese card names that
     /// OCR reads in their phonetic script rather than Latin letters.
     static func isHiragana(_ scalar: Unicode.Scalar) -> Bool {
-        (0x3040...0x309F).contains(scalar.value)
+        scalar.isHiraganaScript
     }
 
     /// Matches Katakana scalars, which commonly appear in Japanese Pokemon
     /// names and suffixes captured from the card title line.
     static func isKatakana(_ scalar: Unicode.Scalar) -> Bool {
-        (0x30A0...0x30FF).contains(scalar.value)
+        scalar.isKatakanaScript
     }
 
     /// Matches the unified CJK ideograph block so kanji-based titles still
     /// count as supported name script during OCR cleanup.
     static func isCJK(_ scalar: Unicode.Scalar) -> Bool {
-        (0x4E00...0x9FFF).contains(scalar.value)
+        scalar.isKanjiOrChineseScript
     }
 
     /// Matches Hangul syllables so Korean card titles participate in the same
     /// mixed-script normalization path as Japanese and Chinese titles.
     static func isHangul(_ scalar: Unicode.Scalar) -> Bool {
-        (0xAC00...0xD7AF).contains(scalar.value)
+        scalar.isHangulScript
     }
 }

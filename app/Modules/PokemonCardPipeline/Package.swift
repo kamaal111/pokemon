@@ -13,6 +13,11 @@ let package = Package(
         .library(name: "PokemonCardCropping", targets: ["PokemonCardCropping"]),
         .library(name: "PokemonCardDetection", targets: ["PokemonCardDetection"]),
         .library(name: "PokemonCardStability", targets: ["PokemonCardStability"]),
+        .library(name: "PokemonCardTextExtraction", targets: ["PokemonCardTextExtraction"]),
+        .library(name: "PokemonCardUtilities", targets: ["PokemonCardUtilities"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/Kamaalio/KamaalSwift.git", from: "3.5.0")
     ],
     targets: [
         .target(
@@ -49,6 +54,24 @@ let package = Package(
                 "PokemonCardDetection",
                 "PokemonCardStability",
             ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
+            name: "PokemonCardTextExtraction",
+            dependencies: [
+                "PokemonCardImageProcessing",
+                .product(name: "KamaalLogger", package: "KamaalSwift"),
+                .product(name: "KamaalExtensions", package: "KamaalSwift"),
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
+            name: "PokemonCardUtilities",
+            dependencies: [],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
             ]
@@ -92,6 +115,19 @@ let package = Package(
                 "PokemonCardPipeline",
                 "PokemonCardCropping",
                 "PokemonCardDetection",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .testTarget(
+            name: "PokemonCardTextExtractionTests",
+            dependencies: [
+                "PokemonCardTextExtraction",
+                "PokemonCardUtilities",
+            ],
+            resources: [
+                .process("Internal/Resources")
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)

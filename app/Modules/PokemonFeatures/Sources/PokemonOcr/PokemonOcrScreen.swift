@@ -9,6 +9,7 @@ import Foundation
 import PokemonCardCropping
 import PokemonCardDetection
 import PokemonCardPipeline
+import PokemonCardTextExtraction
 import SwiftUI
 
 public struct PokemonOcrScreen: View {
@@ -17,8 +18,10 @@ public struct PokemonOcrScreen: View {
     @State private var capturedImage: UIImage?
     @State private var result: PokemonCardCropResult?
     @State private var detectionReport: PokemonCardShapeDetectionReport?
+    @State private var textExtractionResult: PokemonCardTextExtractionResult?
     @State private var errorMessage: String?
     @State private var isLoading = false
+    @State private var isExtractingText = false
 
     public init() {}
 
@@ -33,7 +36,15 @@ public struct PokemonOcrScreen: View {
                     }
 
                     if let cropImage = result?.cropImage {
-                        imageSection(title: "Card Crop", image: cropImage)
+                        cardCropSection(image: cropImage)
+                    }
+
+                    if isExtractingText {
+                        ProgressView("Extracting text")
+                    }
+
+                    if let textExtractionResult {
+                        textExtractionSection(textExtractionResult)
                     }
 
                     if let errorMessage {
@@ -70,7 +81,7 @@ public struct PokemonOcrScreen: View {
                     )
                     .frame(maxWidth: .infinity)
                 }
-                .disabled(!cameraState.canStartCamera || isLoading)
+                .disabled(!cameraState.canStartCamera || isLoading || isExtractingText)
 
                 Button {
                     captureFrame()
@@ -84,7 +95,7 @@ public struct PokemonOcrScreen: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .disabled(!cameraState.canUseManualCropFallback || isLoading)
+                .disabled(!cameraState.canUseManualCropFallback || isLoading || isExtractingText)
             }
 
             detectionFeedback
@@ -159,8 +170,107 @@ public struct PokemonOcrScreen: View {
         }
     }
 
+    private func cardCropSection(image: UIImage) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Card Crop")
+                .font(.headline)
+
+            GeometryReader { geometry in
+                ZStack(alignment: .topLeading) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+
+                    if let observations = textExtractionResult?.observations {
+                        ForEach(observations) { observation in
+                            let rect = PokemonCardTextOverlayGeometry.displayRect(
+                                for: observation.normalizedBoundingBox,
+                                imageSize: image.size,
+                                containerSize: geometry.size
+                            )
+
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(Color.green, lineWidth: 2)
+                                .frame(width: rect.width, height: rect.height)
+                                .position(x: rect.midX, y: rect.midY)
+
+                            Text(shortOverlayLabel(for: observation))
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(Color.black.opacity(0.72))
+                                .position(x: rect.midX, y: max(8, rect.minY - 8))
+                        }
+                    }
+                }
+            }
+            .aspectRatio(image.size, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func textExtractionSection(
+        _ result: PokemonCardTextExtractionResult
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !result.combinedText.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Recognized Text")
+                        .font(.headline)
+
+                    Text(result.combinedText)
+                        .font(.footnote.monospaced())
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Passes")
+                    .font(.headline)
+
+                ForEach(result.passes, id: \.label) { report in
+                    Text(PokemonCardTextPassReportFormatter.summary(for: report))
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(report.errorMessage == nil ? .secondary : .red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Debug Images")
+                    .font(.headline)
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.adaptive(minimum: 140), spacing: 10)
+                    ],
+                    alignment: .leading,
+                    spacing: 10
+                ) {
+                    ForEach(result.debugImages) { debugImage in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Image(uiImage: debugImage.image)
+                                .resizable()
+                                .scaledToFit()
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                            Text(debugImage.label)
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func startCamera() {
         result = nil
+        textExtractionResult = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -180,6 +290,7 @@ public struct PokemonOcrScreen: View {
 
     private func captureFrame() {
         result = nil
+        textExtractionResult = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -199,6 +310,7 @@ public struct PokemonOcrScreen: View {
                 case .success(let value):
                     result = value
                     cameraState = .running
+                    extractText(from: value.cropImage)
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                     cameraState = .failed(error.localizedDescription)
@@ -215,6 +327,35 @@ public struct PokemonOcrScreen: View {
         capturedImage = capture.originalImage
         result = capture.cropResult
         cameraState = .completed
+        extractText(from: capture.cropResult.cropImage)
+    }
+
+    private func extractText(from image: UIImage) {
+        isExtractingText = true
+        textExtractionResult = nil
+
+        Task.detached(priority: .userInitiated) {
+            let extractionResult = await PokemonCardTextExtractor().extractText(from: image)
+
+            await MainActor.run {
+                switch extractionResult {
+                case .success(let value):
+                    textExtractionResult = value
+                case .failure(let error):
+                    errorMessage = error.localizedDescription
+                }
+
+                isExtractingText = false
+            }
+        }
+    }
+
+    private func shortOverlayLabel(for observation: PokemonCardTextObservation) -> String {
+        let text = observation.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > 18 else { return text }
+
+        let endIndex = text.index(text.startIndex, offsetBy: 18)
+        return String(text[..<endIndex]) + "..."
     }
 
     private func confidenceText(for confidence: Float) -> String {

@@ -49,6 +49,13 @@
     {
       "target" : {
         "containerPath" : "container:Modules\/PokemonCardPipeline",
+        "identifier" : "PokemonCardTextExtractionTests",
+        "name" : "PokemonCardTextExtractionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonCardPipeline",
         "identifier" : "PokemonCardStabilityTests",
         "name" : "PokemonCardStabilityTests"
       }

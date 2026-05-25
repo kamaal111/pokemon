@@ -7,7 +7,7 @@
 
 @preconcurrency import AVFoundation
 import CoreImage
-import OSLog
+import KamaalLogger
 import PokemonCardDetection
 import PokemonCardPipeline
 import QuartzCore
@@ -28,7 +28,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
     private var onFrameCaptured: ((UIImage) -> Void)?
     private var onDetectionReportChange: ((PokemonCardShapeDetectionReport?) -> Void)?
     private var onDetectedFrameCaptured: ((PokemonCardPipelineCapture) -> Void)?
-    private let logger = Logger(subsystem: "io.kamaal.Pokemon", category: "CardScanner")
+    private let logger = KamaalLogger(from: PokemonCardCameraController.self)
 
     func start(
         onStateChange: @escaping (PokemonCardCameraState) -> Void,
@@ -40,7 +40,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
         self.onDetectionReportChange = onDetectionReportChange
         self.onFrameCaptured = onFrameCaptured
         self.onDetectedFrameCaptured = onDetectedFrameCaptured
-        logger.notice("Card scanner start requested")
+        logger.info("Card scanner start requested")
         emit(.requestingPermission)
 
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -77,7 +77,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
                 return
             }
 
-            self.logger.notice("Card scanner session stopping")
+            self.logger.info("Card scanner session stopping")
             self.session.stopRunning()
         }
     }
@@ -95,7 +95,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
                 return
             }
 
-            self.logger.notice("Manual crop using latest throttled frame")
+            self.logger.info("Manual crop using latest throttled frame")
             DispatchQueue.main.async { [onFrameCaptured] in
                 onFrameCaptured?(latestFrame)
             }
@@ -118,7 +118,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
             self.framePipeline = PokemonCardFramePipeline()
             self.emitDetectionReport(nil)
             if !self.session.isRunning {
-                self.logger.notice("Card scanner session starting")
+                self.logger.info("Card scanner session starting")
                 self.session.startRunning()
             }
 
@@ -264,7 +264,7 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
             logDetectionReport(frameResult.detectionReport, frame: frame)
             return frameResult
         case .failure(let error):
-            logger.error("Card pipeline failed: \(error.localizedDescription, privacy: .public)")
+            logger.error("Card pipeline failed: \(error.localizedDescription)")
             emit(.failed(error.localizedDescription))
             return nil
         }
@@ -274,7 +274,7 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         if let detection = report.selectedDetection {
             let rect = detection.normalizedBoundingBox.standardized
             logger.info(
-                "Card detection selected confidence=\(detection.confidence) rect=\(rect.debugDescription, privacy: .public) candidates=\(report.candidates.count) valid=\(report.validCandidateCount)"
+                "Card detection selected confidence=\(detection.confidence) rect=\(rect.debugDescription) candidates=\(report.candidates.count) valid=\(report.validCandidateCount)"
             )
         } else {
             logger.info(
@@ -287,7 +287,7 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
             let metrics = candidate.metrics
             let reasons = candidate.rejectionReasons.map(\.rawValue).joined(separator: ",")
             logger.info(
-                "Card candidate source=\(candidate.source.rawValue, privacy: .public) confidence=\(metrics.confidence) score=\(candidate.score) rect=\(rect.debugDescription, privacy: .public) aspect=\(metrics.boundingAspectRatio) area=\(metrics.areaFraction) content=\(metrics.contentScore) shape=\(metrics.shapeScore) rejected=\(reasons, privacy: .public)"
+                "Card candidate source=\(candidate.source.rawValue) confidence=\(metrics.confidence) score=\(candidate.score) rect=\(rect.debugDescription) aspect=\(metrics.boundingAspectRatio) area=\(metrics.areaFraction) content=\(metrics.contentScore) shape=\(metrics.shapeScore) rejected=\(reasons)"
             )
         }
     }
