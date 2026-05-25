@@ -9,7 +9,7 @@
 import CoreImage
 import OSLog
 import PokemonCardDetection
-import PokemonCardStability
+import PokemonCardPipeline
 import QuartzCore
 import UIKit
 
@@ -20,21 +20,21 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
     private let videoOutput = AVCaptureVideoDataOutput()
     private let imageContext = CIContext()
     private var detectionThrottler = PokemonCardDetectionFrameThrottler()
-    private var autoCaptureGate = PokemonCardAutoCaptureGate()
+    private var framePipeline = PokemonCardFramePipeline()
 
     private var latestFrame: UIImage?
     private var isConfigured = false
     private var onStateChange: ((PokemonCardCameraState) -> Void)?
     private var onFrameCaptured: ((UIImage) -> Void)?
     private var onDetectionReportChange: ((PokemonCardShapeDetectionReport?) -> Void)?
-    private var onDetectedFrameCaptured: ((UIImage, PokemonCardShapeDetection) -> Void)?
+    private var onDetectedFrameCaptured: ((PokemonCardPipelineCapture) -> Void)?
     private let logger = Logger(subsystem: "io.kamaal.Pokemon", category: "CardScanner")
 
     func start(
         onStateChange: @escaping (PokemonCardCameraState) -> Void,
         onDetectionReportChange: @escaping (PokemonCardShapeDetectionReport?) -> Void,
         onFrameCaptured: @escaping (UIImage) -> Void,
-        onDetectedFrameCaptured: @escaping (UIImage, PokemonCardShapeDetection) -> Void
+        onDetectedFrameCaptured: @escaping (PokemonCardPipelineCapture) -> Void
     ) {
         self.onStateChange = onStateChange
         self.onDetectionReportChange = onDetectionReportChange
@@ -115,7 +115,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
 
             self.latestFrame = nil
             self.detectionThrottler.reset()
-            self.autoCaptureGate = PokemonCardAutoCaptureGate()
+            self.framePipeline = PokemonCardFramePipeline()
             self.emitDetectionReport(nil)
             if !self.session.isRunning {
                 self.logger.notice("Card scanner session starting")
@@ -237,16 +237,13 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         }
 
         latestFrame = frame
-        let detectionResult = PokemonCardShapeDetector.detectCardShapeReport(in: frame)
-        let report = try? detectionResult.get()
-        emitDetectionReport(report)
-        logDetectionReport(report, frame: frame)
-
-        let detection = report?.selectedDetection
-        guard autoCaptureGate.shouldCapture(detection) else {
+        let pipelineResult = framePipeline.process(frame)
+        guard let frameResult = logPipelineResult(pipelineResult, frame: frame) else {
             return
         }
-        guard let detection else {
+        emitDetectionReport(frameResult.detectionReport)
+
+        guard let capture = frameResult.capture else {
             return
         }
 
@@ -254,16 +251,26 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         session.stopRunning()
         latestFrame = nil
         DispatchQueue.main.async { [onDetectedFrameCaptured] in
-            onDetectedFrameCaptured?(frame, detection)
+            onDetectedFrameCaptured?(capture)
         }
     }
 
-    private func logDetectionReport(_ report: PokemonCardShapeDetectionReport?, frame: UIImage) {
-        guard let report else {
-            logger.error("Card detection failed for frame \(Int(frame.size.width))x\(Int(frame.size.height))")
-            return
+    private func logPipelineResult(
+        _ result: Result<PokemonCardPipelineFrameResult, PokemonCardPipelineError>,
+        frame: UIImage
+    ) -> PokemonCardPipelineFrameResult? {
+        switch result {
+        case .success(let frameResult):
+            logDetectionReport(frameResult.detectionReport, frame: frame)
+            return frameResult
+        case .failure(let error):
+            logger.error("Card pipeline failed: \(error.localizedDescription, privacy: .public)")
+            emit(.failed(error.localizedDescription))
+            return nil
         }
+    }
 
+    private func logDetectionReport(_ report: PokemonCardShapeDetectionReport, frame: UIImage) {
         if let detection = report.selectedDetection {
             let rect = detection.normalizedBoundingBox.standardized
             logger.info(

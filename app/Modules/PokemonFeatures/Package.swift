@@ -17,10 +17,10 @@ let package = Package(
         .target(
             name: "PokemonOcr",
             dependencies: [
+                .product(name: "PokemonCardPipeline", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
-                .product(name: "PokemonCardStability", package: "PokemonCardPipeline"),
             ],
             resources: [
                 .process("Internal/Resources")
@@ -33,10 +33,10 @@ let package = Package(
             name: "PokemonOcrTests",
             dependencies: [
                 "PokemonOcr",
+                .product(name: "PokemonCardPipeline", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardCropping", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardDetection", package: "PokemonCardPipeline"),
                 .product(name: "PokemonCardImageProcessing", package: "PokemonCardPipeline"),
-                .product(name: "PokemonCardStability", package: "PokemonCardPipeline"),
             ],
             resources: [
                 .process("Internal/Resources")

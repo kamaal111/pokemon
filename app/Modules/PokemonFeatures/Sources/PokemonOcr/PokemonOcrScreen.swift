@@ -8,6 +8,7 @@
 import Foundation
 import PokemonCardCropping
 import PokemonCardDetection
+import PokemonCardPipeline
 import SwiftUI
 
 public struct PokemonOcrScreen: View {
@@ -172,8 +173,8 @@ public struct PokemonOcrScreen: View {
             detectionReport = report
         } onFrameCaptured: { image in
             cropCard(from: image)
-        } onDetectedFrameCaptured: { image, detection in
-            cropDetectedCard(from: image, detection: detection)
+        } onDetectedFrameCaptured: { capture in
+            finishDetectedCardCapture(capture)
         }
     }
 
@@ -208,30 +209,12 @@ public struct PokemonOcrScreen: View {
         }
     }
 
-    private func cropDetectedCard(from image: UIImage, detection: PokemonCardShapeDetection) {
-        isLoading = true
+    private func finishDetectedCardCapture(_ capture: PokemonCardPipelineCapture) {
+        isLoading = false
         errorMessage = nil
-        capturedImage = image
-
-        Task.detached(priority: .userInitiated) {
-            let cropResult = PokemonCardCropper.cropCard(
-                from: image,
-                detectedNormalizedCardRect: detection.normalizedBoundingBox
-            )
-
-            await MainActor.run {
-                switch cropResult {
-                case .success(let value):
-                    result = value
-                    cameraState = .completed
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    cameraState = .failed(error.localizedDescription)
-                }
-
-                isLoading = false
-            }
-        }
+        capturedImage = capture.originalImage
+        result = capture.cropResult
+        cameraState = .completed
     }
 
     private func confidenceText(for confidence: Float) -> String {
