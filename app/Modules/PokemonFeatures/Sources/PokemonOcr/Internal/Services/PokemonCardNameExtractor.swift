@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PokemonCardImageProcessing
 import UIKit
 
 enum PokemonCardNameExtractionError: LocalizedError, Equatable {
@@ -45,7 +46,7 @@ struct PokemonCardNameExtractor {
         let cropResult = PokemonCardTitleCropper.cropTitle(from: image)
         guard case .success(let crop) = cropResult else { return .failure(.emptyTitleCrop) }
 
-        let normalizedImage = image.normalizedForPokemonOcr()
+        let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         let titleRegion = PokemonCardTitleCropper.titleObservationRegion(for: normalizedImage.size)
         let titleSearchRegion = PokemonCardTitleCropper.titleSearchRegion(for: normalizedImage.size)
         let initialRecognition = await recognizer.recognizeText(

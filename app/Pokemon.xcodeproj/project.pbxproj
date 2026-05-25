@@ -7,24 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2CC241752FB8B0A600B90F20 /* PokemonApp in Frameworks */ = {isa = PBXBuildFile; productRef = 2CC241742FB8B0A600B90F20 /* PokemonApp */; };
+		2C0E150B2FC4681100516816 /* PokemonApp in Frameworks */ = {isa = PBXBuildFile; productRef = 2C0E150A2FC4681100516816 /* PokemonApp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2CC241482FB8A9C100B90F20 /* Pokemon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pokemon.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2CC6F8B02FB8F266009E001D /* Pokemon.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Pokemon.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		2CC241722FB8AFF600B90F20 /* Exceptions for "Modules" folder in "Pokemon" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				PokemonApp,
-				PokemonFeatures,
-			);
-			target = 2CC241472FB8A9C100B90F20 /* Pokemon */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2CC2414A2FB8A9C100B90F20 /* Pokemon */ = {
@@ -34,9 +23,6 @@
 		};
 		2CC241702FB8AFDF00B90F20 /* Modules */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				2CC241722FB8AFF600B90F20 /* Exceptions for "Modules" folder in "Pokemon" target */,
-			);
 			path = Modules;
 			sourceTree = "<group>";
 		};
@@ -47,7 +33,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2CC241752FB8B0A600B90F20 /* PokemonApp in Frameworks */,
+				2C0E150B2FC4681100516816 /* PokemonApp in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -97,11 +83,10 @@
 			);
 			fileSystemSynchronizedGroups = (
 				2CC2414A2FB8A9C100B90F20 /* Pokemon */,
-				2CC241702FB8AFDF00B90F20 /* Modules */,
 			);
 			name = Pokemon;
 			packageProductDependencies = (
-				2CC241742FB8B0A600B90F20 /* PokemonApp */,
+				2C0E150A2FC4681100516816 /* PokemonApp */,
 			);
 			productName = Pokemon;
 			productReference = 2CC241482FB8A9C100B90F20 /* Pokemon.app */;
@@ -132,7 +117,7 @@
 			mainGroup = 2CC2413F2FB8A9C100B90F20;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */,
+				2C68F7F82FC4A7C60051D4A0 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2CC241492FB8A9C100B90F20 /* Products */;
@@ -388,16 +373,16 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */ = {
+		2C68F7F82FC4A7C60051D4A0 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Modules/PokemonApp;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2CC241742FB8B0A600B90F20 /* PokemonApp */ = {
+		2C0E150A2FC4681100516816 /* PokemonApp */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2CC241762FB8C2F400B90F20 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */;
+			package = 2C68F7F82FC4A7C60051D4A0 /* XCLocalSwiftPackageReference "Modules/PokemonApp" */;
 			productName = PokemonApp;
 		};
 /* End XCSwiftPackageProductDependency section */

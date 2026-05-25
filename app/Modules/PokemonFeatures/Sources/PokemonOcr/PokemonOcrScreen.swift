@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import PokemonCardCropping
+import PokemonCardDetection
 import SwiftUI
 
 public struct PokemonOcrScreen: View {
@@ -258,14 +260,7 @@ public struct PokemonOcrScreen: View {
         }
 
         let score = Double(candidate.score).formatted(.number.precision(.fractionLength(2)))
-        let threshold = Double(PokemonCardShapeDetector.Configuration.default.minimumAcceptedScore).formatted(
-            .number.precision(.fractionLength(2))
-        )
         let reasons = candidate.rejectionReasons.map(\.rawValue).joined(separator: ",")
-
-        if candidate.score < PokemonCardShapeDetector.Configuration.default.minimumAcceptedScore {
-            return "Best rejected: score \(score) < \(threshold), \(reasons)."
-        }
 
         return "Best rejected: score \(score), \(reasons)."
     }

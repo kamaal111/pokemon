@@ -6,20 +6,27 @@
 //
 
 import CryptoKit
+import PokemonCardImageProcessing
 import UIKit
 
 struct PokemonOcrKnownSampleResolver {
     private static let referenceSamples = loadReferenceSamples()
 
     func resolveTitle(for image: UIImage) -> String? {
-        guard let querySignature = pixelSignature(for: image.normalizedForPokemonOcr()) else { return nil }
+        guard let querySignature = pixelSignature(for: PokemonCardImageNormalizer.normalizedForPokemonOcr(image)) else {
+            return nil
+        }
 
         return Self.referenceSamples.first(where: { $0.signature == querySignature })?.title
     }
 
     private static func loadReferenceSamples() -> [ReferenceSample] {
         PokemonOcrSampleCard.allCases.compactMap { sampleCard in
-            guard let signature = pixelSignature(for: sampleCard.image.normalizedForPokemonOcr()) else {
+            guard
+                let signature = pixelSignature(
+                    for: PokemonCardImageNormalizer.normalizedForPokemonOcr(sampleCard.image)
+                )
+            else {
                 return nil
             }
 

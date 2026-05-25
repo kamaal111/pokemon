@@ -1,6 +1,6 @@
 //
 //  PokemonCardShapeDetectorTests.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
@@ -9,7 +9,8 @@ import CoreGraphics
 import Testing
 import UIKit
 
-@testable import PokemonOcr
+@testable import PokemonCardCropping
+@testable import PokemonCardDetection
 
 @Suite("PokemonCardShapeDetector Tests")
 struct PokemonCardShapeDetectorTests {

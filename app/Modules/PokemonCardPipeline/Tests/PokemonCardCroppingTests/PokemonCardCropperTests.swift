@@ -1,6 +1,6 @@
 //
 //  PokemonCardCropperTests.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
 //  Created by Kamaal M Farah on 5/19/26.
 //
@@ -8,7 +8,7 @@
 import Testing
 import UIKit
 
-@testable import PokemonOcr
+@testable import PokemonCardCropping
 
 @Suite("PokemonCardCropper Tests")
 struct PokemonCardCropperTests {
