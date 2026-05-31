@@ -111,7 +111,7 @@ public struct PokemonOcrScreen: View {
             "Scan Again"
         case .idle, .failed:
             "Start Camera"
-        case .requestingPermission, .running, .capturing:
+        case .requestingPermission, .running, .holdingSteady, .moveFartherAway, .moreLightNeeded, .capturing:
             "Camera Running"
         }
     }
@@ -137,7 +137,7 @@ public struct PokemonOcrScreen: View {
                 )
                 .foregroundColor(.secondary)
                 .font(.footnote.monospacedDigit())
-            } else if cameraState == .running {
+            } else if cameraState.canUseManualCropFallback {
                 Text("No card-shaped rectangle yet.")
                     .foregroundColor(.secondary)
                     .font(.footnote)
@@ -153,7 +153,9 @@ public struct PokemonOcrScreen: View {
         switch cameraState {
         case .failed:
             .red
-        case .idle, .requestingPermission, .running, .capturing, .completed:
+        case .moveFartherAway, .moreLightNeeded:
+            .orange
+        case .idle, .requestingPermission, .running, .holdingSteady, .capturing, .completed:
             .secondary
         }
     }

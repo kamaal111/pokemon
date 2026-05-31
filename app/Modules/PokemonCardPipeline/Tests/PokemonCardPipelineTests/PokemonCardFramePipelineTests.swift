@@ -6,11 +6,13 @@
 //
 
 import CoreGraphics
+import PokemonCardPipelineTestSupport
 import Testing
 import UIKit
 
 @testable import PokemonCardCropping
 @testable import PokemonCardDetection
+@testable import PokemonCardFocusQuality
 @testable import PokemonCardPipeline
 @testable import PokemonCardStability
 
@@ -30,7 +32,7 @@ struct PokemonCardFramePipelineTests {
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
-        let result = try pipeline.process(Self.image()).get()
+        let result = try Self.processReady(&pipeline)
 
         #expect(result.detectionReport.selectedDetection == nil)
         #expect(result.cropResult == nil)
@@ -54,7 +56,7 @@ struct PokemonCardFramePipelineTests {
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
-        let result = try pipeline.process(Self.image()).get()
+        let result = try Self.processReady(&pipeline)
 
         #expect(result.cropResult != nil)
         #expect(result.capture == nil)
@@ -76,15 +78,66 @@ struct PokemonCardFramePipelineTests {
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
-        let first = try pipeline.process(Self.image()).get()
-        let second = try pipeline.process(Self.image()).get()
-        let third = try pipeline.process(Self.image()).get()
+        let first = try Self.processReady(&pipeline)
+        let second = try Self.processReady(&pipeline)
+        let third = try Self.processReady(&pipeline)
 
         #expect(first.capture == nil)
         #expect(second.capture == nil)
         #expect(third.capture?.detection == detection)
-        #expect(third.capture?.cropResult.cropImage.size == CGSize(width: 80, height: 120))
+        #expect(third.capture?.cropResult.cropImage.size == CGSize(width: 240, height: 336))
+        #expect(third.capture?.focusQuality?.isSharpEnough == true)
         #expect(cropCallCount == 3)
+    }
+
+    @Test
+    func `Should not capture stable card while text region is blurry`() throws {
+        let detection = Self.detection()
+        let blurryCardImage = try PokemonCardTestImageFilters.gaussianBlurred(
+            PokemonCardTestImages.compactPipelineCard(lineWidth: 180)
+        )
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult(cropImage: blurryCardImage))
+            },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+
+        #expect(result.capture == nil)
+        #expect(result.focusQuality?.isSharpEnough == false)
+        #expect(result.focusQuality?.reason == .tooBlurry)
+    }
+
+    @Test
+    func `Should capture best focused frame from the stable window`() throws {
+        let detection = Self.detection()
+        var cropResults = [
+            Self.cropResult(cropImage: PokemonCardTestImages.compactPipelineCard(lineWidth: 120), cropRectWidth: 120),
+            Self.cropResult(cropImage: PokemonCardTestImages.compactPipelineCard(lineWidth: 190), cropRectWidth: 190),
+            Self.cropResult(cropImage: PokemonCardTestImages.compactPipelineCard(lineWidth: 150), cropRectWidth: 150),
+        ]
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(cropResults.removeFirst())
+            },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+
+        #expect(result.capture?.cropResult.cropRect.width == 190)
     }
 
     @Test
@@ -100,10 +153,10 @@ struct PokemonCardFramePipelineTests {
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
-        _ = try pipeline.process(Self.image()).get()
-        _ = try pipeline.process(Self.image()).get()
-        let firstStable = try pipeline.process(Self.image()).get()
-        let repeated = try pipeline.process(Self.image()).get()
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let firstStable = try Self.processReady(&pipeline)
+        let repeated = try Self.processReady(&pipeline)
 
         #expect(firstStable.capture != nil)
         #expect(repeated.capture == nil)
@@ -122,8 +175,19 @@ struct PokemonCardFramePipelineTests {
         )
 
         #expect(throws: PokemonCardPipelineError.cropFailed(.emptyCrop)) {
-            try pipeline.process(Self.image()).get()
+            try Self.processReady(&pipeline)
         }
+    }
+
+    private static func processReady(
+        _ pipeline: inout PokemonCardFramePipeline,
+        image: UIImage = Self.image()
+    ) throws -> PokemonCardPipelineFrameResult {
+        try pipeline.process(
+            image,
+            isFocusAdjusting: false,
+            isFocusSettling: false
+        ).get()
     }
 
     private static func report(selectedDetection: PokemonCardShapeDetection?) -> PokemonCardShapeDetectionReport {
@@ -140,14 +204,21 @@ struct PokemonCardFramePipelineTests {
         PokemonCardShapeDetection(normalizedBoundingBox: rect, confidence: 0.90)
     }
 
-    private static func cropResult() -> PokemonCardCropResult {
+    private static func cropResult(
+        cropImage: UIImage = PokemonCardTestImages.compactPipelineCard(lineWidth: 180),
+        cropRectWidth: CGFloat? = nil
+    ) -> PokemonCardCropResult {
         let original = Self.image(size: CGSize(width: 200, height: 300))
-        let crop = Self.image(size: CGSize(width: 80, height: 120))
 
         return PokemonCardCropResult(
             originalImage: original,
-            cropImage: crop,
-            cropRect: CGRect(x: 20, y: 20, width: 80, height: 120),
+            cropImage: cropImage,
+            cropRect: CGRect(
+                x: 20,
+                y: 20,
+                width: cropRectWidth ?? cropImage.size.width,
+                height: cropImage.size.height
+            ),
             normalizedCropRect: CGRect(x: 0.10, y: 0.10, width: 0.40, height: 0.40),
             isClippedToImageBounds: false
         )
@@ -161,4 +232,5 @@ struct PokemonCardFramePipelineTests {
             context.fill(CGRect(origin: .zero, size: size))
         }
     }
+
 }

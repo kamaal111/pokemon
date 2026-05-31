@@ -8,7 +8,9 @@
 import CoreGraphics
 import PokemonCardCropping
 import PokemonCardDetection
+import PokemonCardFocusQuality
 import PokemonCardStability
+import PokemonCardUtilities
 import UIKit
 
 public enum PokemonCardPipelineError: LocalizedError, Equatable, Sendable {
@@ -29,23 +31,27 @@ public struct PokemonCardPipelineCapture {
     public let originalImage: UIImage
     public let detection: PokemonCardShapeDetection
     public let cropResult: PokemonCardCropResult
+    public let focusQuality: PokemonCardFocusQualityReport?
 }
 
 public struct PokemonCardPipelineFrameResult {
     public let detectionReport: PokemonCardShapeDetectionReport
     public let cropResult: PokemonCardCropResult?
+    public let focusQuality: PokemonCardFocusQualityReport?
+    public let autoCaptureDecision: PokemonCardAutoCaptureDecision
     public let capture: PokemonCardPipelineCapture?
 }
 
-public struct PokemonCardFramePipeline {
+public class PokemonCardFramePipeline {
     typealias DetectionStage = (UIImage) -> Result<PokemonCardShapeDetectionReport, PokemonCardShapeDetectionError>
     typealias CropStage = (UIImage, CGRect) -> Result<PokemonCardCropResult, PokemonCardCropError>
 
     private let detectCardShape: DetectionStage
     private let cropCard: CropStage
     private var autoCaptureGate: PokemonCardAutoCaptureGate
+    private var bestFocusedFrames: [FocusedFrame] = []
 
-    public init() {
+    public convenience init() {
         self.init(
             detectCardShape: PokemonCardShapeDetector.detectCardShapeReport(in:),
             cropCard: { image, rect in
@@ -65,7 +71,11 @@ public struct PokemonCardFramePipeline {
         self.autoCaptureGate = autoCaptureGate
     }
 
-    public mutating func process(_ frame: UIImage) -> Result<PokemonCardPipelineFrameResult, PokemonCardPipelineError> {
+    public func process(
+        _ frame: UIImage,
+        isFocusAdjusting: Bool,
+        isFocusSettling: Bool
+    ) -> Result<PokemonCardPipelineFrameResult, PokemonCardPipelineError> {
         let report: PokemonCardShapeDetectionReport
         switch detectCardShape(frame) {
         case .success(let value):
@@ -75,11 +85,14 @@ public struct PokemonCardFramePipeline {
         }
 
         guard let detection = report.selectedDetection else {
-            _ = autoCaptureGate.shouldCapture(nil)
+            let decision = autoCaptureGate.evaluate(nil, focusQuality: nil)
+            bestFocusedFrames = []
             return .success(
                 PokemonCardPipelineFrameResult(
                     detectionReport: report,
                     cropResult: nil,
+                    focusQuality: nil,
+                    autoCaptureDecision: decision,
                     capture: nil
                 ))
         }
@@ -92,12 +105,39 @@ public struct PokemonCardFramePipeline {
             return .failure(.cropFailed(error))
         }
 
+        let focusQuality = PokemonCardFocusQualityAnalyzer.evaluate(
+            image: cropResult.cropImage,
+            cardAreaFraction: detection.normalizedBoundingBox.standardized.areaFraction,
+            isFocusAdjusting: isFocusAdjusting,
+            isFocusSettling: isFocusSettling
+        )
+        let decision = autoCaptureGate.evaluate(
+            detection,
+            focusQuality: focusQuality,
+            isFocusAdjusting: isFocusAdjusting,
+            isFocusSettling: isFocusSettling
+        )
+        if decision.didResetStability {
+            bestFocusedFrames = []
+        }
+        appendBestFrame(
+            frame: frame,
+            detection: detection,
+            cropResult: cropResult,
+            focusQuality: focusQuality
+        )
+
         let capture: PokemonCardPipelineCapture? =
-            if autoCaptureGate.shouldCapture(detection) {
+            if decision.shouldCapture,
+                let bestFocusedFrame = bestFocusedFrames.max(by: { first, second in
+                    first.focusQuality.score < second.focusQuality.score
+                })
+            {
                 PokemonCardPipelineCapture(
-                    originalImage: frame,
-                    detection: detection,
-                    cropResult: cropResult
+                    originalImage: bestFocusedFrame.originalImage,
+                    detection: bestFocusedFrame.detection,
+                    cropResult: bestFocusedFrame.cropResult,
+                    focusQuality: bestFocusedFrame.focusQuality
                 )
             } else {
                 nil
@@ -107,7 +147,38 @@ public struct PokemonCardFramePipeline {
             PokemonCardPipelineFrameResult(
                 detectionReport: report,
                 cropResult: cropResult,
+                focusQuality: focusQuality,
+                autoCaptureDecision: decision,
                 capture: capture
             ))
     }
+
+    private func appendBestFrame(
+        frame: UIImage,
+        detection: PokemonCardShapeDetection,
+        cropResult: PokemonCardCropResult,
+        focusQuality: PokemonCardFocusQualityReport
+    ) {
+        guard focusQuality.isSharpEnough else { return }
+
+        bestFocusedFrames.append(
+            FocusedFrame(
+                originalImage: frame,
+                detection: detection,
+                cropResult: cropResult,
+                focusQuality: focusQuality
+            ))
+        if bestFocusedFrames.count > Self.maximumBestFrameCount {
+            bestFocusedFrames.removeFirst(bestFocusedFrames.count - Self.maximumBestFrameCount)
+        }
+    }
+
+    private static let maximumBestFrameCount = 8
+}
+
+private struct FocusedFrame {
+    let originalImage: UIImage
+    let detection: PokemonCardShapeDetection
+    let cropResult: PokemonCardCropResult
+    let focusQuality: PokemonCardFocusQualityReport
 }

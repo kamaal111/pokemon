@@ -17,6 +17,9 @@ struct PokemonCardCameraStateTests {
         #expect(PokemonCardCameraState.failed("Camera unavailable").canStartCamera)
         #expect(!PokemonCardCameraState.requestingPermission.canStartCamera)
         #expect(!PokemonCardCameraState.running.canStartCamera)
+        #expect(!PokemonCardCameraState.holdingSteady.canStartCamera)
+        #expect(!PokemonCardCameraState.moveFartherAway.canStartCamera)
+        #expect(!PokemonCardCameraState.moreLightNeeded.canStartCamera)
         #expect(!PokemonCardCameraState.capturing.canStartCamera)
         #expect(PokemonCardCameraState.completed.canStartCamera)
     }
@@ -24,6 +27,9 @@ struct PokemonCardCameraStateTests {
     @Test
     func `Should only allow manual crop fallback while scanning`() {
         #expect(PokemonCardCameraState.running.canUseManualCropFallback)
+        #expect(PokemonCardCameraState.holdingSteady.canUseManualCropFallback)
+        #expect(PokemonCardCameraState.moveFartherAway.canUseManualCropFallback)
+        #expect(PokemonCardCameraState.moreLightNeeded.canUseManualCropFallback)
         #expect(!PokemonCardCameraState.idle.canUseManualCropFallback)
         #expect(!PokemonCardCameraState.requestingPermission.canUseManualCropFallback)
         #expect(!PokemonCardCameraState.capturing.canUseManualCropFallback)
@@ -34,6 +40,11 @@ struct PokemonCardCameraStateTests {
     @Test
     func `Should expose scanning status while camera runs`() {
         #expect(PokemonCardCameraState.running.statusText == "Scanning for a steady card shape...")
+        #expect(PokemonCardCameraState.holdingSteady.statusText == "Hold steady while the card comes into focus...")
+        #expect(
+            PokemonCardCameraState.moveFartherAway.statusText
+                == "Move a little farther away so the card text can focus.")
+        #expect(PokemonCardCameraState.moreLightNeeded.statusText == "More light needed to focus the card text.")
     }
 
     @Test

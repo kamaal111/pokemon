@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "PokemonCardImageProcessing", targets: ["PokemonCardImageProcessing"]),
         .library(name: "PokemonCardCropping", targets: ["PokemonCardCropping"]),
         .library(name: "PokemonCardDetection", targets: ["PokemonCardDetection"]),
+        .library(name: "PokemonCardFocusQuality", targets: ["PokemonCardFocusQuality"]),
         .library(name: "PokemonCardStability", targets: ["PokemonCardStability"]),
         .library(name: "PokemonCardTextExtraction", targets: ["PokemonCardTextExtraction"]),
         .library(name: "PokemonCardUtilities", targets: ["PokemonCardUtilities"]),
@@ -41,8 +42,18 @@ let package = Package(
             ]
         ),
         .target(
+            name: "PokemonCardFocusQuality",
+            dependencies: ["PokemonCardUtilities"],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
             name: "PokemonCardStability",
-            dependencies: ["PokemonCardDetection"],
+            dependencies: [
+                "PokemonCardDetection",
+                "PokemonCardFocusQuality",
+            ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
             ]
@@ -52,7 +63,9 @@ let package = Package(
             dependencies: [
                 "PokemonCardCropping",
                 "PokemonCardDetection",
+                "PokemonCardFocusQuality",
                 "PokemonCardStability",
+                "PokemonCardUtilities",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
@@ -72,6 +85,14 @@ let package = Package(
         .target(
             name: "PokemonCardUtilities",
             dependencies: [],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
+            name: "PokemonCardPipelineTestSupport",
+            dependencies: [],
+            path: "Tests/PokemonCardPipelineTestSupport",
             swiftSettings: [
                 .treatAllWarnings(as: .error)
             ]
@@ -103,7 +124,18 @@ let package = Package(
             name: "PokemonCardStabilityTests",
             dependencies: [
                 "PokemonCardDetection",
+                "PokemonCardFocusQuality",
                 "PokemonCardStability",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .testTarget(
+            name: "PokemonCardFocusQualityTests",
+            dependencies: [
+                "PokemonCardFocusQuality",
+                "PokemonCardPipelineTestSupport",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
@@ -115,6 +147,8 @@ let package = Package(
                 "PokemonCardPipeline",
                 "PokemonCardCropping",
                 "PokemonCardDetection",
+                "PokemonCardFocusQuality",
+                "PokemonCardPipelineTestSupport",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
