@@ -7,16 +7,26 @@
 
 import CoreGraphics
 import PokemonCardDetection
+import PokemonCardFocusQuality
 
-public struct PokemonCardAutoCaptureGate {
+public struct PokemonCardAutoCaptureDecision: Equatable, Sendable {
+    public let shouldCapture: Bool
+    public let isGeometryStable: Bool
+    public let isFocusEligible: Bool
+    public let didResetStability: Bool
+}
+
+public class PokemonCardAutoCaptureGate {
     struct Configuration: Sendable {
         let requiredStableDetections: Int
+        let requiredFocusedDetections: Int
         let maximumCenterDrift: CGFloat
         let minimumIntersectionOverUnion: CGFloat
         let maximumAreaDrift: CGFloat
 
         static let `default` = Configuration(
             requiredStableDetections: 3,
+            requiredFocusedDetections: 2,
             maximumCenterDrift: 0.06,
             minimumIntersectionOverUnion: 0.65,
             maximumAreaDrift: 0.25
@@ -27,40 +37,94 @@ public struct PokemonCardAutoCaptureGate {
 
     private var previousDetection: PokemonCardShapeDetection?
     private var stableDetectionCount = 0
+    private var focusedDetectionCount = 0
     private var hasCaptured = false
 
     public init() {
         configuration = .default
     }
 
-    public mutating func shouldCapture(_ detection: PokemonCardShapeDetection?) -> Bool {
+    public func evaluate(
+        _ detection: PokemonCardShapeDetection?,
+        focusQuality: PokemonCardFocusQualityReport?,
+        isFocusAdjusting: Bool = false,
+        isFocusSettling: Bool = false
+    ) -> PokemonCardAutoCaptureDecision {
         guard !hasCaptured else {
-            return false
+            return PokemonCardAutoCaptureDecision(
+                shouldCapture: false,
+                isGeometryStable: false,
+                isFocusEligible: false,
+                didResetStability: false
+            )
         }
         guard let detection else {
             previousDetection = nil
             stableDetectionCount = 0
-            return false
+            focusedDetectionCount = 0
+            return PokemonCardAutoCaptureDecision(
+                shouldCapture: false,
+                isGeometryStable: false,
+                isFocusEligible: false,
+                didResetStability: true
+            )
         }
 
+        let didResetStability: Bool
+        let isGeometryStable: Bool
         if let previousDetection, isStable(detection, after: previousDetection) {
             stableDetectionCount += 1
+            didResetStability = false
+            isGeometryStable = stableDetectionCount >= configuration.requiredStableDetections
         } else {
             stableDetectionCount = 1
+            focusedDetectionCount = 0
+            didResetStability = previousDetection != nil
+            isGeometryStable = false
         }
 
         previousDetection = detection
-        guard stableDetectionCount >= configuration.requiredStableDetections else {
-            return false
+
+        let isFocusEligible =
+            (focusQuality?.isSharpEnough ?? true) && !isFocusAdjusting && !isFocusSettling
+        if isFocusEligible {
+            focusedDetectionCount += 1
+        } else {
+            focusedDetectionCount = 0
+        }
+
+        guard isGeometryStable else {
+            return PokemonCardAutoCaptureDecision(
+                shouldCapture: false,
+                isGeometryStable: false,
+                isFocusEligible: isFocusEligible,
+                didResetStability: didResetStability
+            )
+        }
+
+        guard focusedDetectionCount >= configuration.requiredFocusedDetections else {
+            return PokemonCardAutoCaptureDecision(
+                shouldCapture: false,
+                isGeometryStable: true,
+                isFocusEligible: isFocusEligible,
+                didResetStability: didResetStability
+            )
         }
 
         hasCaptured = true
-        return true
+
+        return PokemonCardAutoCaptureDecision(
+            shouldCapture: true,
+            isGeometryStable: true,
+            isFocusEligible: isFocusEligible,
+            didResetStability: didResetStability
+        )
     }
 
-    mutating func reset() {
+    func reset() {
         previousDetection = nil
         stableDetectionCount = 0
+        focusedDetectionCount = 0
         hasCaptured = false
     }
 

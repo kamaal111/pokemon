@@ -9,7 +9,9 @@
 import CoreImage
 import KamaalLogger
 import PokemonCardDetection
+import PokemonCardFocusQuality
 import PokemonCardPipeline
+import PokemonCardStability
 import QuartzCore
 import UIKit
 
@@ -21,14 +23,20 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
     private let imageContext = CIContext()
     private var detectionThrottler = PokemonCardDetectionFrameThrottler()
     private var framePipeline = PokemonCardFramePipeline()
+    private var refocusCoordinator = PokemonCardCameraRefocusCoordinator()
 
     private var latestFrame: UIImage?
+    private var activeCamera: AVCaptureDevice?
     private var isConfigured = false
     private var onStateChange: ((PokemonCardCameraState) -> Void)?
     private var onFrameCaptured: ((UIImage) -> Void)?
     private var onDetectionReportChange: ((PokemonCardShapeDetectionReport?) -> Void)?
     private var onDetectedFrameCaptured: ((PokemonCardPipelineCapture) -> Void)?
     private let logger = KamaalLogger(from: PokemonCardCameraController.self)
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 
     func start(
         onStateChange: @escaping (PokemonCardCameraState) -> Void,
@@ -116,6 +124,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
             self.latestFrame = nil
             self.detectionThrottler.reset()
             self.framePipeline = PokemonCardFramePipeline()
+            self.refocusCoordinator.reset()
             self.emitDetectionReport(nil)
             if !self.session.isRunning {
                 self.logger.info("Card scanner session starting")
@@ -131,9 +140,11 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
             return true
         }
 
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+        guard let camera = PokemonCardCameraDeviceSelection.preferredBackCamera() else {
             return false
         }
+        activeCamera = camera
+        logCameraCapabilities(camera)
 
         let input: AVCaptureDeviceInput
         do {
@@ -143,7 +154,9 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
         }
 
         session.beginConfiguration()
-        if session.canSetSessionPreset(.hd1280x720) {
+        if session.canSetSessionPreset(.hd1920x1080) {
+            session.sessionPreset = .hd1920x1080
+        } else if session.canSetSessionPreset(.hd1280x720) {
             session.sessionPreset = .hd1280x720
         } else {
             session.sessionPreset = .medium
@@ -169,6 +182,7 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
         videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
         session.addOutput(videoOutput)
         session.commitConfiguration()
+        startSubjectAreaMonitoring(for: camera)
         isConfigured = true
 
         return true
@@ -206,6 +220,100 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
         }
 
         camera.unlockForConfiguration()
+        refocusCoordinator.markFocusRequested(point: CGPoint(x: 0.5, y: 0.5), at: CACurrentMediaTime())
+    }
+
+    private func startSubjectAreaMonitoring(for camera: AVCaptureDevice) {
+        do {
+            try camera.lockForConfiguration()
+        } catch {
+            return
+        }
+
+        camera.isSubjectAreaChangeMonitoringEnabled = true
+        camera.unlockForConfiguration()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(subjectAreaDidChange),
+            name: AVCaptureDevice.subjectAreaDidChangeNotification,
+            object: camera
+        )
+    }
+
+    @objc private func subjectAreaDidChange(_ notification: Notification) {
+        sessionQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.requestFocus(at: CGPoint(x: 0.5, y: 0.5), reason: "subject-area-change")
+        }
+    }
+
+    private func requestFocus(at point: CGPoint, reason: String) {
+        guard let camera = activeCamera else { return }
+
+        do {
+            try camera.lockForConfiguration()
+        } catch {
+            logger.error(label: "Could not lock camera for focus request reason=\(reason)", error: error)
+            return
+        }
+
+        if camera.isFocusPointOfInterestSupported {
+            camera.focusPointOfInterest = point
+        }
+
+        if camera.isFocusModeSupported(.autoFocus) {
+            camera.focusMode = .autoFocus
+        } else if camera.isFocusModeSupported(.continuousAutoFocus) {
+            camera.focusMode = .continuousAutoFocus
+        }
+
+        if camera.isExposurePointOfInterestSupported {
+            camera.exposurePointOfInterest = point
+        }
+
+        if camera.isExposureModeSupported(.continuousAutoExposure) {
+            camera.exposureMode = .continuousAutoExposure
+        }
+
+        camera.unlockForConfiguration()
+        refocusCoordinator.markFocusRequested(point: point, at: CACurrentMediaTime())
+        logger.info("Requested card focus reason=\(reason) point=\(point.debugDescription)")
+    }
+
+    private func resumeContinuousFocusIfNeeded() {
+        guard let camera = activeCamera else {
+            return
+        }
+
+        guard !camera.isAdjustingFocus else {
+            return
+        }
+
+        guard camera.focusMode == .autoFocus else {
+            return
+        }
+
+        do {
+            try camera.lockForConfiguration()
+        } catch {
+            return
+        }
+
+        if camera.isFocusModeSupported(.continuousAutoFocus) {
+            camera.focusMode = .continuousAutoFocus
+        }
+
+        camera.unlockForConfiguration()
+    }
+
+    private func logCameraCapabilities(_ camera: AVCaptureDevice) {
+        logger.info(
+            "Using camera type=\(camera.deviceType.rawValue) minimumFocusDistance=\(camera.minimumFocusDistance) switchOvers=\(camera.virtualDeviceSwitchOverVideoZoomFactors) minZoom=\(camera.minAvailableVideoZoomFactor) maxZoom=\(camera.maxAvailableVideoZoomFactor) nearRestriction=\(camera.isAutoFocusRangeRestrictionSupported)"
+        )
     }
 
     private func emit(_ state: PokemonCardCameraState) {
@@ -237,11 +345,19 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         }
 
         latestFrame = frame
-        let pipelineResult = framePipeline.process(frame)
+        let now = CACurrentMediaTime()
+        let isFocusAdjusting = activeCamera?.isAdjustingFocus ?? false
+        let isFocusSettling = refocusCoordinator.isSettling(at: now)
+        let pipelineResult = framePipeline.process(
+            frame,
+            isFocusAdjusting: isFocusAdjusting,
+            isFocusSettling: isFocusSettling
+        )
         guard let frameResult = logPipelineResult(pipelineResult, frame: frame) else {
             return
         }
         emitDetectionReport(frameResult.detectionReport)
+        handleFocusFeedback(frameResult, at: now)
 
         guard let capture = frameResult.capture else {
             return
@@ -255,6 +371,53 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         }
     }
 
+    private func handleFocusFeedback(_ frameResult: PokemonCardPipelineFrameResult, at time: TimeInterval) {
+        guard let detection = frameResult.detectionReport.selectedDetection else {
+            emit(.running)
+            return
+        }
+
+        guard let focusQuality = frameResult.focusQuality else {
+            emit(.running)
+            return
+        }
+
+        let focusPoint = Self.deviceFocusPoint(for: detection.normalizedBoundingBox)
+        if refocusCoordinator.shouldRequestFocus(point: focusPoint, focusQuality: focusQuality, at: time) {
+            requestFocus(at: focusPoint, reason: "\(focusQuality.reason)")
+        } else {
+            resumeContinuousFocusIfNeeded()
+        }
+
+        emitScanningState(focusQuality: focusQuality, decision: frameResult.autoCaptureDecision)
+    }
+
+    private func emitScanningState(
+        focusQuality: PokemonCardFocusQualityReport,
+        decision: PokemonCardAutoCaptureDecision
+    ) {
+        switch focusQuality.reason {
+        case .tooCloseLikely:
+            emit(.moveFartherAway)
+        case .tooDark, .tooLowContrast:
+            emit(.moreLightNeeded)
+        case .waitingForAutofocus:
+            emit(.holdingSteady)
+        case .tooBlurry:
+            emit(decision.isGeometryStable ? .holdingSteady : .running)
+        case .focused:
+            emit(.running)
+        }
+    }
+
+    static func deviceFocusPoint(for normalizedBoundingBox: CGRect) -> CGPoint {
+        let rect = normalizedBoundingBox.standardized
+        return CGPoint(
+            x: min(max(1 - rect.midY, 0), 1),
+            y: min(max(1 - rect.midX, 0), 1)
+        )
+    }
+
     private func logPipelineResult(
         _ result: Result<PokemonCardPipelineFrameResult, PokemonCardPipelineError>,
         frame: UIImage
@@ -262,6 +425,7 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         switch result {
         case .success(let frameResult):
             logDetectionReport(frameResult.detectionReport, frame: frame)
+            logFocusQuality(frameResult.focusQuality, decision: frameResult.autoCaptureDecision)
             return frameResult
         case .failure(let error):
             logger.error("Card pipeline failed: \(error.localizedDescription)")
@@ -290,5 +454,18 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
                 "Card candidate source=\(candidate.source.rawValue) confidence=\(metrics.confidence) score=\(candidate.score) rect=\(rect.debugDescription) aspect=\(metrics.boundingAspectRatio) area=\(metrics.areaFraction) content=\(metrics.contentScore) shape=\(metrics.shapeScore) rejected=\(reasons)"
             )
         }
+    }
+
+    private func logFocusQuality(
+        _ focusQuality: PokemonCardFocusQualityReport?,
+        decision: PokemonCardAutoCaptureDecision
+    ) {
+        guard let focusQuality else {
+            return
+        }
+
+        logger.info(
+            "Focus quality sharp=\(focusQuality.isSharpEnough) reason=\(focusQuality.reason) laplacian=\(focusQuality.sharpnessScore) gradient=\(focusQuality.gradientScore) brightness=\(focusQuality.brightness) contrast=\(focusQuality.contrast) geometryStable=\(decision.isGeometryStable) focusEligible=\(decision.isFocusEligible)"
+        )
     }
 }
