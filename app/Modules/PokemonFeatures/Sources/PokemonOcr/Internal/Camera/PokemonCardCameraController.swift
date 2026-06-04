@@ -366,8 +366,13 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         emit(.capturing)
         session.stopRunning()
         latestFrame = nil
-        DispatchQueue.main.async { [onDetectedFrameCaptured] in
-            onDetectedFrameCaptured?(capture)
+        Task { [weak self, framePipeline] in
+            guard let self else { return }
+
+            let namedCapture = await framePipeline.completeCaptureName(for: capture)
+            DispatchQueue.main.async {
+                self.onDetectedFrameCaptured?(namedCapture)
+            }
         }
     }
 

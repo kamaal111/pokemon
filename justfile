@@ -45,7 +45,19 @@ generate-ocr-lexicon:
     sqlite3 -separator $'\t' api/.data/pokemon.sqlite "
         select language_name, trim(name)
         from pokemon_species_names
-        where language_name in ('en', 'ja', 'ja-hrkt', 'ko', 'zh-hans', 'zh-hant')
+        where language_name in (
+            'de',
+            'en',
+            'es',
+            'fr',
+            'it',
+            'ja',
+            'ja-hrkt',
+            'ja-roma',
+            'ko',
+            'zh-hans',
+            'zh-hant'
+        )
           and trim(name) <> ''
         group by language_name, name
         order by language_name, name;

@@ -1,27 +1,21 @@
 //
 //  PokemonCardNameCandidateSelector.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
-//  Created by Kamaal M Farah on 5/16/26.
+//  Created by Codex on 6/4/26.
 //
 
+import CoreGraphics
 import Foundation
 
-struct PokemonCardNameCandidateSelector {
+enum PokemonCardNameCandidateSelector {
     private static let rejectedFragments = ["hp", "기본", "진화", "進化", "から", "테라스탈"]
     private static let latinSuffixes = ["ex", "EX", "GX", "V", "VMAX", "VSTAR"]
 
-    private init() {}
-
-    /// Picks the OCR candidate that most likely represents the printed card name.
-    ///
-    /// The selector combines OCR confidence with lightweight text and layout
-    /// heuristics so likely title candidates beat out labels, stats, and other
-    /// nearby text.
     static func chooseBestCandidate(
-        from candidates: [PokemonOcrCandidate],
+        from candidates: [PokemonCardNameCandidate],
         preferredRegion: CGRect?
-    ) -> PokemonOcrCandidate? {
+    ) -> PokemonCardNameCandidate? {
         candidates
             .compactMap { scoredCandidate($0, preferredRegion: preferredRegion) }
             .max { left, right in
@@ -35,7 +29,7 @@ struct PokemonCardNameCandidateSelector {
     }
 
     private static func scoredCandidate(
-        _ candidate: PokemonOcrCandidate,
+        _ candidate: PokemonCardNameCandidate,
         preferredRegion: CGRect?
     ) -> ScoredCandidate? {
         let normalizedText = candidate.normalizedText
@@ -108,6 +102,14 @@ struct PokemonCardNameCandidateSelector {
                 score -= 20
             }
 
+            // Stage labels sit at the far left on some localized cards. Prefer
+            // text that starts inside the title area over those left-edge labels.
+            if candidate.boundingBox.midX < preferredRegion.minX {
+                score -= 100
+            } else if candidate.boundingBox.minX < preferredRegion.minX {
+                score -= 50
+            }
+
             // Very narrow boxes are usually fragments or punctuation rather than
             // full card names.
             if candidate.boundingBox.width < 0.08 {
@@ -150,25 +152,22 @@ struct PokemonCardNameCandidateSelector {
     }
 
     private static func numericCharacterRatio(in text: String) -> Double {
-        guard !text.isEmpty else {
-            return 0
-        }
+        guard !text.isEmpty else { return 0 }
 
         let numericCount = text.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
+
         return Double(numericCount) / Double(text.count)
     }
 }
 
 private struct ScoredCandidate {
-    let candidate: PokemonOcrCandidate
+    let candidate: PokemonCardNameCandidate
     let score: Double
 }
 
 extension CGRect {
     fileprivate var area: Double {
-        guard !isNull, !isEmpty else {
-            return 0
-        }
+        guard !isNull, !isEmpty else { return 0 }
 
         return Double(width * height)
     }

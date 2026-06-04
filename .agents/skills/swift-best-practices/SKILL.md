@@ -85,6 +85,14 @@ guard let modelContext else {
 - Do not mock or replace pure utility implementations in tests. Test the real utility behavior so edge cases are exercised instead of hidden behind a fake.
 - Reserve dependency injection for components with side effects, external I/O, environment access, mutable state, or behavior that genuinely varies by implementation.
 
+## Shared Ownership
+
+- Do not copy non-trivial Swift logic into a second module just to make it reachable from a new caller.
+- Prefer moving reusable behavior into the lowest suitable shared target, such as a service, model, utility, or package layer that both callers can depend on.
+- When moving code across targets, remove the original implementation in the same change unless it still has intentionally different behavior.
+- If similar code remains in two places, make the ownership boundary and behavioral difference explicit through names, tests, or module responsibilities.
+- Before adding a new helper, search for existing helpers with the same responsibility and extend or relocate them when that keeps one source of truth.
+
 ## Non-Private Error APIs
 
 - If a method is not `private` and it can fail, prefer returning `Result<Success, Failure>` instead of exposing a throwing API.

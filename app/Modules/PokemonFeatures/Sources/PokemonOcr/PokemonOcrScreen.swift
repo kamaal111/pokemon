@@ -19,6 +19,7 @@ public struct PokemonOcrScreen: View {
     @State private var result: PokemonCardCropResult?
     @State private var detectionReport: PokemonCardShapeDetectionReport?
     @State private var textExtractionResult: PokemonCardTextExtractionResult?
+    @State private var pokemonName: String?
     @State private var errorMessage: String?
     @State private var isLoading = false
     @State private var isExtractingText = false
@@ -30,6 +31,10 @@ public struct PokemonOcrScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     cameraSection
+
+                    if let pokemonName {
+                        pokemonNameSection(pokemonName)
+                    }
 
                     if let capturedImage {
                         imageSection(title: "Original", image: capturedImage)
@@ -59,6 +64,23 @@ public struct PokemonOcrScreen: View {
             .onDisappear {
                 cameraController.stop()
             }
+        }
+    }
+
+    private func pokemonNameSection(_ name: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Pokemon Name")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text(name)
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(Color.green.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -273,6 +295,7 @@ public struct PokemonOcrScreen: View {
     private func startCamera() {
         result = nil
         textExtractionResult = nil
+        pokemonName = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -293,6 +316,7 @@ public struct PokemonOcrScreen: View {
     private func captureFrame() {
         result = nil
         textExtractionResult = nil
+        pokemonName = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -302,6 +326,7 @@ public struct PokemonOcrScreen: View {
     private func cropCard(from image: UIImage) {
         isLoading = true
         errorMessage = nil
+        pokemonName = nil
         capturedImage = image
 
         Task.detached(priority: .userInitiated) {
@@ -328,6 +353,7 @@ public struct PokemonOcrScreen: View {
         errorMessage = nil
         capturedImage = capture.originalImage
         result = capture.cropResult
+        pokemonName = capture.pokemonName
         cameraState = .completed
         extractText(from: capture.cropResult.cropImage)
     }

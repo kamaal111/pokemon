@@ -6,10 +6,12 @@
 //
 
 import CoreGraphics
+import Foundation
 import PokemonCardCropping
 import PokemonCardDetection
 import PokemonCardFocusQuality
 import PokemonCardStability
+import PokemonCardTextExtraction
 import PokemonCardUtilities
 import UIKit
 
@@ -27,11 +29,30 @@ public enum PokemonCardPipelineError: LocalizedError, Equatable, Sendable {
     }
 }
 
-public struct PokemonCardPipelineCapture {
-    public let originalImage: UIImage
+public struct PokemonCardPipelineCapture: Sendable {
+    private let originalImageSnapshot: PokemonCardImageSnapshot
     public let detection: PokemonCardShapeDetection
     public let cropResult: PokemonCardCropResult
     public let focusQuality: PokemonCardFocusQualityReport?
+    public let pokemonName: String?
+
+    public var originalImage: UIImage {
+        originalImageSnapshot.image
+    }
+
+    public init(
+        originalImage: UIImage,
+        detection: PokemonCardShapeDetection,
+        cropResult: PokemonCardCropResult,
+        focusQuality: PokemonCardFocusQualityReport?,
+        pokemonName: String?
+    ) {
+        self.originalImageSnapshot = PokemonCardImageSnapshot(image: originalImage)
+        self.detection = detection
+        self.cropResult = cropResult
+        self.focusQuality = focusQuality
+        self.pokemonName = pokemonName
+    }
 }
 
 public struct PokemonCardPipelineFrameResult {
@@ -45,9 +66,11 @@ public struct PokemonCardPipelineFrameResult {
 public class PokemonCardFramePipeline {
     typealias DetectionStage = (UIImage) -> Result<PokemonCardShapeDetectionReport, PokemonCardShapeDetectionError>
     typealias CropStage = (UIImage, CGRect) -> Result<PokemonCardCropResult, PokemonCardCropError>
+    typealias PokemonNameStage = @Sendable (UIImage) async -> String?
 
     private let detectCardShape: DetectionStage
     private let cropCard: CropStage
+    private let extractPokemonName: PokemonNameStage
     private var autoCaptureGate: PokemonCardAutoCaptureGate
     private var bestFocusedFrames: [FocusedFrame] = []
 
@@ -57,6 +80,7 @@ public class PokemonCardFramePipeline {
             cropCard: { image, rect in
                 PokemonCardCropper.cropCard(from: image, detectedNormalizedCardRect: rect)
             },
+            extractPokemonName: Self.handleExtractPokemonName(from:),
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
     }
@@ -64,10 +88,12 @@ public class PokemonCardFramePipeline {
     init(
         detectCardShape: @escaping DetectionStage,
         cropCard: @escaping CropStage,
+        extractPokemonName: @escaping PokemonNameStage,
         autoCaptureGate: PokemonCardAutoCaptureGate
     ) {
         self.detectCardShape = detectCardShape
         self.cropCard = cropCard
+        self.extractPokemonName = extractPokemonName
         self.autoCaptureGate = autoCaptureGate
     }
 
@@ -127,21 +153,7 @@ public class PokemonCardFramePipeline {
             focusQuality: focusQuality
         )
 
-        let capture: PokemonCardPipelineCapture? =
-            if decision.shouldCapture,
-                let bestFocusedFrame = bestFocusedFrames.max(by: { first, second in
-                    first.focusQuality.score < second.focusQuality.score
-                })
-            {
-                PokemonCardPipelineCapture(
-                    originalImage: bestFocusedFrame.originalImage,
-                    detection: bestFocusedFrame.detection,
-                    cropResult: bestFocusedFrame.cropResult,
-                    focusQuality: bestFocusedFrame.focusQuality
-                )
-            } else {
-                nil
-            }
+        let capture = processCapture(decision: decision)
 
         return .success(
             PokemonCardPipelineFrameResult(
@@ -151,6 +163,40 @@ public class PokemonCardFramePipeline {
                 autoCaptureDecision: decision,
                 capture: capture
             ))
+    }
+
+    public func completeCaptureName(for capture: PokemonCardPipelineCapture) async -> PokemonCardPipelineCapture {
+        let pokemonName = await extractPokemonName(capture.cropResult.cropImage)
+
+        return PokemonCardPipelineCapture(
+            originalImage: capture.originalImage,
+            detection: capture.detection,
+            cropResult: capture.cropResult,
+            focusQuality: capture.focusQuality,
+            pokemonName: pokemonName
+        )
+    }
+
+    private func processCapture(decision: PokemonCardAutoCaptureDecision) -> PokemonCardPipelineCapture? {
+        guard decision.shouldCapture else { return nil }
+
+        let bestFocusedFrame = bestFocusedFrames.max(by: { $0.focusQuality.score < $1.focusQuality.score })
+        guard let bestFocusedFrame else { return nil }
+
+        return PokemonCardPipelineCapture(
+            originalImage: bestFocusedFrame.originalImage,
+            detection: bestFocusedFrame.detection,
+            cropResult: bestFocusedFrame.cropResult,
+            focusQuality: bestFocusedFrame.focusQuality,
+            pokemonName: nil
+        )
+    }
+
+    private static func handleExtractPokemonName(from image: UIImage) async -> String? {
+        let result = await PokemonCardNameExtractor().extractName(from: image)
+        guard case .success(let value) = result else { return nil }
+
+        return value.pokemonName
     }
 
     private func appendBestFrame(

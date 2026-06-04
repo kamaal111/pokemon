@@ -1,8 +1,8 @@
 //
 //  PokemonCardTitleCropper.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
-//  Created by Kamaal M Farah on 5/16/26.
+//  Created by Codex on 6/4/26.
 //
 
 import CoreImage
@@ -33,7 +33,7 @@ struct PokemonCardTitleCropper {
         let yMax: CGFloat
 
         static let `default` = Configuration(
-            xMin: 0.12,
+            xMin: 0.20,
             xMax: 0.75,
             yMin: 0.02,
             yMax: 0.13
@@ -81,7 +81,7 @@ struct PokemonCardTitleCropper {
         configuration: Configuration = .default
     ) -> CGRect {
         let titleRegion = titleObservationRegion(for: imageSize, configuration: configuration)
-        let expandedRegion = titleRegion.insetBy(dx: -0.06, dy: -0.07)
+        let expandedRegion = titleRegion.insetBy(dx: -0.10, dy: -0.07)
 
         return CGRect(x: 0, y: 0, width: 1, height: 1).intersection(expandedRegion)
     }
@@ -136,15 +136,15 @@ struct PokemonCardTitleCropper {
 }
 
 extension UIImage {
-    func enhancedTitleCropForPokemonOcr() -> UIImage {
-        enhancedForPokemonOcr(contrast: 2.2, scaleFactor: 3)
+    func enhancedTitleCropForPokemonCardNameExtraction() -> UIImage {
+        enhancedForPokemonCardNameExtraction(contrast: 2.2, scaleFactor: 3)
     }
 
-    func enhancedFocusedTextImageForPokemonOcr() -> UIImage {
-        enhancedForPokemonOcr(contrast: 3.0, scaleFactor: 5)
+    func enhancedFocusedTextImageForPokemonCardNameExtraction() -> UIImage {
+        enhancedForPokemonCardNameExtraction(contrast: 3.0, scaleFactor: 5)
     }
 
-    private func enhancedForPokemonOcr(
+    private func enhancedForPokemonCardNameExtraction(
         contrast: CGFloat,
         scaleFactor: CGFloat
     ) -> UIImage {
