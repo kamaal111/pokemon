@@ -1,8 +1,8 @@
 //
 //  PokemonCardTitleNormalizer.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
-//  Created by Kamaal M Farah on 5/16/26.
+//  Created by Codex on 6/4/26.
 //
 
 import Foundation
@@ -15,7 +15,10 @@ enum PokemonCardTitleNormalizer {
             .filter { !$0.isEmpty }
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        if containsSupportedNameScript(normalizedText) {
+        // Vision can split East Asian title glyphs with spaces. Collapse those
+        // gaps only when the title is entirely in supported non-Latin scripts so
+        // mixed names like "N의 조로아" keep their meaningful word spacing.
+        if shouldCompactSupportedScriptSpacing(in: normalizedText) {
             normalizedText = normalizedText.components(separatedBy: .whitespacesAndNewlines)
                 .joined()
         }
@@ -70,6 +73,10 @@ enum PokemonCardTitleNormalizer {
         }
     }
 
+    private static func shouldCompactSupportedScriptSpacing(in text: String) -> Bool {
+        containsSupportedNameScript(text) && !containsLatinLetters(text)
+    }
+
     private static func shouldRepairTrailingE(_ text: String) -> Bool {
         guard text.hasSuffix("e") else {
             return false
@@ -95,12 +102,11 @@ enum PokemonCardTitleNormalizer {
         let containsSupportedPrefixScript = prefix.unicodeScalars.contains { scalar in
             isHiragana(scalar) || isKatakana(scalar) || isCJK(scalar) || isHangul(scalar)
         }
-
         guard containsSupportedPrefixScript else {
             return text
         }
 
-        return "\(prefix)ex"
+        return "\(prefix.trimmingCharacters(in: .whitespacesAndNewlines))ex"
     }
 
     /// Matches Hiragana scalars so we can recognize Japanese card names that

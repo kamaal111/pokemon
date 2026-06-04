@@ -5,6 +5,7 @@
 - Run `just` from the repository root first so you can discover the current command surface and prefer repo recipes over ad hoc commands.
 - Run commands from the repository root unless a command explicitly requires a package directory.
 - Look for existing patterns before writing code. Match surrounding structure, naming, validation, error handling, and test style unless there is a strong reason to introduce something new.
+- Before copying non-trivial code, look for the right shared owner. Move reusable behavior into an appropriate service, model, utility, package, or module instead of keeping parallel implementations.
 
 ## Critical Development Rules
 
@@ -47,6 +48,10 @@
   - Treat any uncertainty about ownership as a real security bug, not a follow-up cleanup.
 - **NEVER hide required dependency failures behind misleading success responses**
   - If required derived data is missing, fail clearly instead of returning a superficially valid response that breaks downstream assumptions.
+- **NEVER duplicate shared business logic across layers**
+  - If two features need the same behavior, put it in the lowest suitable shared layer and depend on that layer.
+  - Move/adapt the existing implementation instead of copying it and leaving the original behind.
+  - Keep duplicated code only when the behavior is intentionally different, and make that distinction obvious in naming, structure, or tests.
 
 ## Final Response Verification Requirements
 

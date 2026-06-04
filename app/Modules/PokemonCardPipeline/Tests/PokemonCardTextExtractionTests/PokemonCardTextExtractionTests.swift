@@ -45,6 +45,45 @@ struct PokemonCardTextExtractionTests {
     }
 
     @Test
+    func `Should cover supported Pokemon name languages in card name passes`() {
+        let recognitionLanguages = Set(
+            PokemonCardNameLanguagePassPlanner.defaultLanguagePasses
+                .flatMap { languagePass in languagePass.map(\.rawValue) }
+        )
+        let lexiconLanguages = Set(
+            PokemonCardNameLanguagePassPlanner.defaultLanguagePasses
+                .flatMap { languagePass in languagePass.flatMap(\.speciesLexiconLanguages) }
+        )
+
+        #expect(
+            recognitionLanguages == [
+                "de-DE",
+                "en-US",
+                "es-ES",
+                "fr-FR",
+                "it-IT",
+                "ja-JP",
+                "ko-KR",
+                "zh-Hans",
+                "zh-Hant",
+            ])
+        #expect(
+            lexiconLanguages == [
+                "de",
+                "en",
+                "es",
+                "fr",
+                "it",
+                "ja",
+                "ja-hrkt",
+                "ja-roma",
+                "ko",
+                "zh-hans",
+                "zh-hant",
+            ])
+    }
+
+    @Test
     func `Should project ROI bounding boxes back into full-card coordinates`() {
         let projected = PokemonCardTextGeometry.project(
             observationBoundingBox: CGRect(x: 0.10, y: 0.20, width: 0.30, height: 0.40),

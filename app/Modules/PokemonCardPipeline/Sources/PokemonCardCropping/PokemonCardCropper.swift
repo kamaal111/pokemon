@@ -6,7 +6,9 @@
 //
 
 import CoreGraphics
+import Foundation
 import PokemonCardImageProcessing
+import PokemonCardUtilities
 import UIKit
 
 public enum PokemonCardCropError: LocalizedError, Equatable {
@@ -26,12 +28,34 @@ public enum PokemonCardCropError: LocalizedError, Equatable {
     }
 }
 
-public struct PokemonCardCropResult {
-    public let originalImage: UIImage
-    public let cropImage: UIImage
+public struct PokemonCardCropResult: Sendable {
+    private let originalImageSnapshot: PokemonCardImageSnapshot
+    private let cropImageSnapshot: PokemonCardImageSnapshot
     public let cropRect: CGRect
     public let normalizedCropRect: CGRect
     public let isClippedToImageBounds: Bool
+
+    public var originalImage: UIImage {
+        originalImageSnapshot.image
+    }
+
+    public var cropImage: UIImage {
+        cropImageSnapshot.image
+    }
+
+    public init(
+        originalImage: UIImage,
+        cropImage: UIImage,
+        cropRect: CGRect,
+        normalizedCropRect: CGRect,
+        isClippedToImageBounds: Bool
+    ) {
+        self.originalImageSnapshot = PokemonCardImageSnapshot(image: originalImage)
+        self.cropImageSnapshot = PokemonCardImageSnapshot(image: cropImage)
+        self.cropRect = cropRect
+        self.normalizedCropRect = normalizedCropRect
+        self.isClippedToImageBounds = isClippedToImageBounds
+    }
 }
 
 public struct PokemonCardCropper {

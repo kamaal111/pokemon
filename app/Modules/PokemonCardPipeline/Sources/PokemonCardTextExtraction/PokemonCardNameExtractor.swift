@@ -1,46 +1,27 @@
 //
 //  PokemonCardNameExtractor.swift
-//  PokemonFeatures
+//  PokemonCardPipeline
 //
-//  Created by Kamaal M Farah on 5/16/26.
+//  Created by Codex on 6/4/26.
 //
 
 import Foundation
 import PokemonCardImageProcessing
 import UIKit
+import Vision
 
-enum PokemonCardNameExtractionError: LocalizedError, Equatable {
-    case emptyTitleCrop
-    case textRecognitionFailed
+public struct PokemonCardNameExtractor: Sendable {
+    private let recognizer: PokemonCardTextRecognizing
 
-    var errorDescription: String? {
-        switch self {
-        case .emptyTitleCrop:
-            "The card title could not be isolated from the image."
-        case .textRecognitionFailed:
-            "The card text could not be recognized."
-        }
+    public init() {
+        self.init(recognizer: VisionPokemonCardTextRecognizer())
     }
-}
 
-struct PokemonCardNameExtractionResult {
-    let originalImage: UIImage
-    let titleCropImage: UIImage
-    let rawCandidates: [PokemonOcrCandidate]
-    let selectedCandidate: PokemonOcrCandidate?
-    let normalizedTitle: String?
-}
-
-struct PokemonCardNameExtractor {
-    private static let knownSampleResolver = PokemonOcrKnownSampleResolver()
-
-    private let recognizer: PokemonTextRecognizing
-
-    init(recognizer: PokemonTextRecognizing = VisionPokemonTextRecognizer()) {
+    init(recognizer: PokemonCardTextRecognizing) {
         self.recognizer = recognizer
     }
 
-    func extractName(
+    public func extractName(
         from image: UIImage
     ) async -> Result<PokemonCardNameExtractionResult, PokemonCardNameExtractionError> {
         let cropResult = PokemonCardTitleCropper.cropTitle(from: image)
@@ -49,35 +30,26 @@ struct PokemonCardNameExtractor {
         let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         let titleRegion = PokemonCardTitleCropper.titleObservationRegion(for: normalizedImage.size)
         let titleSearchRegion = PokemonCardTitleCropper.titleSearchRegion(for: normalizedImage.size)
-        let initialRecognition = await recognizer.recognizeText(
+        let initialRecognition = await recognizeCandidates(
             in: normalizedImage,
             regionOfInterest: titleSearchRegion,
-            recognitionLanguages: nil
+            recognitionLanguages: Self.defaultRecognitionLanguages
         )
-        guard case .success(let initialCandidates) = initialRecognition else { return .failure(.textRecognitionFailed) }
+        guard case .success(let initialCandidates) = initialRecognition else {
+            return .failure(.textRecognitionFailed)
+        }
 
         var candidates = initialCandidates
         var selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
             from: candidates,
             preferredRegion: titleRegion
         )
-        if let knownSampleCandidate = knownSampleCandidate(
-            for: normalizedImage,
-            boundingBox: titleRegion,
-            resolver: Self.knownSampleResolver
-        ) {
-            candidates.append(knownSampleCandidate)
-            selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
-                from: candidates,
-                preferredRegion: titleRegion
-            )
-        }
         if shouldRunSupplementalLanguagePass(for: selectedCandidate, candidates: candidates) {
             let cropObservationRegion = PokemonCardTitleCropper.observationRegion(
                 for: crop.rect,
                 imageSize: normalizedImage.size
             )
-            let enhancedCropImage = crop.image.enhancedTitleCropForPokemonOcr()
+            let enhancedCropImage = crop.image.enhancedTitleCropForPokemonCardNameExtraction()
             let focusedRegion = focusedTitleRegion(
                 around: selectedCandidate?.boundingBox ?? titleRegion,
                 boundedBy: titleRegion
@@ -86,46 +58,46 @@ struct PokemonCardNameExtractor {
                 focusedRegion,
                 from: normalizedImage
             )
-            let enhancedFocusedCropImage = focusedCrop.image.enhancedFocusedTextImageForPokemonOcr()
-            let languagePasses = PokemonOcrLanguagePassPlanner.supplementalLanguagePasses(
+            let enhancedFocusedCropImage = focusedCrop.image.enhancedFocusedTextImageForPokemonCardNameExtraction()
+            let languagePasses = PokemonCardNameLanguagePassPlanner.supplementalLanguagePasses(
                 for: candidates,
                 selectedCandidate: selectedCandidate
             )
             for languages in languagePasses {
-                let supplementalRecognition = await recognizer.recognizeText(
+                let recognitionLanguages = languages.map(\.rawValue)
+                let supplementalRecognition = await recognizeCandidates(
                     in: normalizedImage,
                     regionOfInterest: nil,
-                    recognitionLanguages: languages
+                    recognitionLanguages: recognitionLanguages
                 )
                 guard case .success(let supplementalCandidates) = supplementalRecognition else {
                     return .failure(.textRecognitionFailed)
                 }
                 candidates.append(contentsOf: supplementalCandidates)
 
-                let cropRecognition = await recognizer.recognizeText(
+                let cropRecognition = await recognizeCandidates(
                     in: enhancedCropImage,
                     regionOfInterest: nil,
-                    recognitionLanguages: languages
+                    recognitionLanguages: recognitionLanguages
                 )
                 guard case .success(let cropCandidates) = cropRecognition else {
                     return .failure(.textRecognitionFailed)
                 }
-
                 candidates.append(
                     contentsOf: projectCropCandidates(
                         cropCandidates,
                         cropObservationRegion: cropObservationRegion
                     )
                 )
-                let focusedCropRecognition = await recognizer.recognizeText(
+
+                let focusedCropRecognition = await recognizeCandidates(
                     in: enhancedFocusedCropImage,
                     regionOfInterest: nil,
-                    recognitionLanguages: languages
+                    recognitionLanguages: recognitionLanguages
                 )
                 guard case .success(let focusedCropCandidates) = focusedCropRecognition else {
                     return .failure(.textRecognitionFailed)
                 }
-
                 candidates.append(
                     contentsOf: projectCropCandidates(
                         focusedCropCandidates,
@@ -141,22 +113,6 @@ struct PokemonCardNameExtractor {
                     break
                 }
             }
-
-            if shouldRunSupplementalLanguagePass(for: selectedCandidate, candidates: candidates) {
-                if let resolvedCandidate = knownSampleCandidate(
-                    for: normalizedImage,
-                    boundingBox: focusedRegion,
-                    resolver: Self.knownSampleResolver
-                ) {
-                    candidates.append(resolvedCandidate)
-                    selectedCandidate = resolvedCandidate
-                } else {
-                    selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
-                        from: candidates,
-                        preferredRegion: titleRegion
-                    )
-                }
-            }
         }
 
         let result = PokemonCardNameExtractionResult(
@@ -164,23 +120,56 @@ struct PokemonCardNameExtractor {
             titleCropImage: crop.image,
             rawCandidates: candidates,
             selectedCandidate: selectedCandidate,
-            normalizedTitle: selectedCandidate?.normalizedText
+            pokemonName: selectedCandidate?.normalizedText
         )
 
         return .success(result)
     }
 
+    private func recognizeCandidates(
+        in image: UIImage,
+        regionOfInterest: CGRect?,
+        recognitionLanguages: [String]
+    ) async -> Result<[PokemonCardNameCandidate], PokemonCardNameExtractionError> {
+        let configuration = PokemonCardTextRecognizerConfiguration(
+            recognitionLevel: Self.recognitionLevel,
+            automaticallyDetectsLanguage: true,
+            recognitionLanguages: recognitionLanguages,
+            minimumTextHeight: 0.01,
+            regionOfInterest: regionOfInterest
+        )
+        let result = await recognizer.recognizeText(in: image, configuration: configuration)
+
+        return result.mapError { _ in PokemonCardNameExtractionError.textRecognitionFailed }
+            .map { rawObservations in
+                rawObservations.flatMap { rawObservation in
+                    rawObservation.topCandidates.map { candidate in
+                        let projectedBoundingBox = PokemonCardTextGeometry.project(
+                            observationBoundingBox: rawObservation.boundingBox,
+                            from: regionOfInterest
+                        )
+
+                        return PokemonCardNameCandidate(
+                            text: candidate.text,
+                            confidence: candidate.confidence,
+                            boundingBox: projectedBoundingBox
+                        )
+                    }
+                }
+            }
+    }
+
     private func shouldRunSupplementalLanguagePass(
-        for candidate: PokemonOcrCandidate?,
-        candidates: [PokemonOcrCandidate]
+        for candidate: PokemonCardNameCandidate?,
+        candidates: [PokemonCardNameCandidate]
     ) -> Bool {
         guard let candidate else { return true }
 
         let text = candidate.normalizedText
         let candidateTexts = candidates.map(\.normalizedText)
         let evidenceTexts = candidateTexts.isEmpty ? [text] : candidateTexts
-        let candidateLanguage = PokemonOcrLanguagePassPlanner.inferredPrimaryLanguageForTesting(text)
-        let dominantEvidenceLanguage = PokemonOcrLanguagePassPlanner.dominantPrimaryLanguage(
+        let candidateLanguage = PokemonCardNameLanguagePassPlanner.inferredPrimaryLanguageForTesting(text)
+        let dominantEvidenceLanguage = PokemonCardNameLanguagePassPlanner.dominantPrimaryLanguage(
             for: evidenceTexts
         )
         let evidenceDisagrees = candidateLanguage != dominantEvidenceLanguage
@@ -222,28 +211,12 @@ struct PokemonCardNameExtractor {
         return hasOnlyAllowedCharacters && vowelCount >= 1 && !looksLikeNoisyAcronym
     }
 
-    private func knownSampleCandidate(
-        for image: UIImage,
-        boundingBox: CGRect,
-        resolver: PokemonOcrKnownSampleResolver
-    ) -> PokemonOcrCandidate? {
-        guard let matchedTitle = resolver.resolveTitle(for: image) else {
-            return nil
-        }
-
-        return PokemonOcrCandidate(
-            text: matchedTitle,
-            confidence: 1.0,
-            boundingBox: boundingBox
-        )
-    }
-
     private func projectCropCandidates(
-        _ candidates: [PokemonOcrCandidate],
+        _ candidates: [PokemonCardNameCandidate],
         cropObservationRegion: CGRect
-    ) -> [PokemonOcrCandidate] {
+    ) -> [PokemonCardNameCandidate] {
         candidates.map { candidate in
-            PokemonOcrCandidate(
+            PokemonCardNameCandidate(
                 text: candidate.text,
                 confidence: candidate.confidence,
                 boundingBox: CGRect(
@@ -270,4 +243,9 @@ struct PokemonCardNameExtractor {
 
         return clampedRegion.isNull || clampedRegion.isEmpty ? expandedRegion : clampedRegion
     }
+
+    private static let defaultRecognitionLanguages = PokemonCardNameLanguagePassPlanner.defaultLanguagePasses
+        .flatMap { $0 }
+        .map(\.rawValue)
+    private static let recognitionLevel: VNRequestTextRecognitionLevel = .accurate
 }

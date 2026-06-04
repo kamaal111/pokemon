@@ -15,6 +15,7 @@ import UIKit
 @testable import PokemonCardFocusQuality
 @testable import PokemonCardPipeline
 @testable import PokemonCardStability
+@testable import PokemonCardTextExtraction
 
 @Suite("PokemonCardFramePipeline Tests")
 struct PokemonCardFramePipelineTests {
@@ -29,6 +30,7 @@ struct PokemonCardFramePipelineTests {
                 cropCallCount += 1
                 return .success(Self.cropResult())
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -53,6 +55,7 @@ struct PokemonCardFramePipelineTests {
                 #expect(rect == detection.normalizedBoundingBox)
                 return .success(Self.cropResult())
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -75,6 +78,7 @@ struct PokemonCardFramePipelineTests {
                 cropCallCount += 1
                 return .success(Self.cropResult())
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -91,6 +95,59 @@ struct PokemonCardFramePipelineTests {
     }
 
     @Test
+    func `Should complete captured card with pokemon name`() async throws {
+        let detection = Self.detection()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { image in
+                #expect(image.size == CGSize(width: 240, height: 336))
+                return "Charizard VMAX"
+            },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let namedCapture = await pipeline.completeCaptureName(for: capture)
+
+        #expect(capture.pokemonName == nil)
+        #expect(namedCapture.pokemonName == "Charizard VMAX")
+        #expect(namedCapture.cropResult.cropImage.size == CGSize(width: 240, height: 336))
+    }
+
+    @Test
+    func `Should keep captured card when pokemon name extraction fails`() async throws {
+        let detection = Self.detection()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { _ in nil },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let namedCapture = await pipeline.completeCaptureName(for: capture)
+
+        #expect(namedCapture.pokemonName == nil)
+        #expect(namedCapture.detection == detection)
+        #expect(namedCapture.cropResult.cropImage.size == CGSize(width: 240, height: 336))
+    }
+
+    @Test
     func `Should not capture stable card while text region is blurry`() throws {
         let detection = Self.detection()
         let blurryCardImage = try PokemonCardTestImageFilters.gaussianBlurred(
@@ -103,6 +160,7 @@ struct PokemonCardFramePipelineTests {
             cropCard: { _, _ in
                 .success(Self.cropResult(cropImage: blurryCardImage))
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -130,6 +188,7 @@ struct PokemonCardFramePipelineTests {
             cropCard: { _, _ in
                 .success(cropResults.removeFirst())
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -150,6 +209,7 @@ struct PokemonCardFramePipelineTests {
             cropCard: { _, _ in
                 .success(Self.cropResult())
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 
@@ -171,6 +231,7 @@ struct PokemonCardFramePipelineTests {
             cropCard: { _, _ in
                 .failure(.emptyCrop)
             },
+            extractPokemonName: { _ in nil },
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
 

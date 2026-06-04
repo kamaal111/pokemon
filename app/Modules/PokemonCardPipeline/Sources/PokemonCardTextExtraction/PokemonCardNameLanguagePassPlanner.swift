@@ -1,25 +1,60 @@
 //
-//  PokemonOcrLanguagePassPlanner.swift
-//  PokemonFeatures
+//  PokemonCardNameLanguagePassPlanner.swift
+//  PokemonCardPipeline
 //
-//  Created by Kamaal M Farah on 5/17/26.
+//  Created by Codex on 6/4/26.
 //
 
 import Foundation
 
-enum PokemonOcrLanguagePassPlanner {
-    private static let defaultLanguagePasses: [[PokemonRecognitionLanguage]] = [
+enum PokemonCardNameLanguage: String, Hashable {
+    case englishUnitedStates = "en-US"
+    case frenchFrance = "fr-FR"
+    case germanGermany = "de-DE"
+    case italianItaly = "it-IT"
+    case japaneseJapan = "ja-JP"
+    case koreanKorea = "ko-KR"
+    case spanishSpain = "es-ES"
+    case chineseSimplified = "zh-Hans"
+    case chineseTraditional = "zh-Hant"
+
+    var speciesLexiconLanguages: [String] {
+        switch self {
+        case .englishUnitedStates:
+            ["en", "ja-roma"]
+        case .frenchFrance:
+            ["fr"]
+        case .germanGermany:
+            ["de"]
+        case .italianItaly:
+            ["it"]
+        case .japaneseJapan:
+            ["ja", "ja-hrkt"]
+        case .koreanKorea:
+            ["ko"]
+        case .spanishSpain:
+            ["es"]
+        case .chineseSimplified:
+            ["zh-hans"]
+        case .chineseTraditional:
+            ["zh-hant"]
+        }
+    }
+}
+
+enum PokemonCardNameLanguagePassPlanner {
+    static let defaultLanguagePasses: [[PokemonCardNameLanguage]] = [
         [.japaneseJapan],
         [.koreanKorea],
         [.chineseSimplified, .chineseTraditional],
-        [.englishUnitedStates],
+        [.englishUnitedStates, .frenchFrance, .germanGermany, .italianItaly, .spanishSpain],
     ]
     private static let latinSuffixes = ["VMAX", "VSTAR", "ex", "EX", "GX", "V"]
 
     static func supplementalLanguagePasses(
-        for candidates: [PokemonOcrCandidate],
-        selectedCandidate: PokemonOcrCandidate?
-    ) -> [[PokemonRecognitionLanguage]] {
+        for candidates: [PokemonCardNameCandidate],
+        selectedCandidate: PokemonCardNameCandidate?
+    ) -> [[PokemonCardNameLanguage]] {
         let evidenceTexts = evidenceTexts(from: candidates, selectedCandidate: selectedCandidate)
         let primaryLanguage = dominantPrimaryLanguage(for: evidenceTexts)
         guard let primaryLanguage else {
@@ -29,7 +64,7 @@ enum PokemonOcrLanguagePassPlanner {
         return reorderedLanguagePasses(primaryLanguageFirst: primaryLanguage)
     }
 
-    static func dominantPrimaryLanguage(for texts: [String]) -> PokemonRecognitionLanguage? {
+    static func dominantPrimaryLanguage(for texts: [String]) -> PokemonCardNameLanguage? {
         let inferredLanguages = texts.compactMap(inferredPrimaryLanguage)
         guard !inferredLanguages.isEmpty else {
             return nil
@@ -52,13 +87,13 @@ enum PokemonOcrLanguagePassPlanner {
 
     static func inferredPrimaryLanguageForTesting(
         _ text: String
-    ) -> PokemonRecognitionLanguage? {
+    ) -> PokemonCardNameLanguage? {
         inferredPrimaryLanguage(for: text)
     }
 
     private static func evidenceTexts(
-        from candidates: [PokemonOcrCandidate],
-        selectedCandidate: PokemonOcrCandidate?
+        from candidates: [PokemonCardNameCandidate],
+        selectedCandidate: PokemonCardNameCandidate?
     ) -> [String] {
         let candidateTexts = candidates.map(\.normalizedText)
         guard !candidateTexts.isEmpty else {
@@ -70,7 +105,7 @@ enum PokemonOcrLanguagePassPlanner {
 
     private static func inferredPrimaryLanguage(
         for text: String
-    ) -> PokemonRecognitionLanguage? {
+    ) -> PokemonCardNameLanguage? {
         let titleText = strippedLatinMechanicSuffixes(from: text)
         guard !titleText.isEmpty else {
             return nil
@@ -79,15 +114,12 @@ enum PokemonOcrLanguagePassPlanner {
         if containsJapaneseSignal(titleText) {
             return .japaneseJapan
         }
-
         if containsKoreanSignal(titleText) {
             return .koreanKorea
         }
-
         if containsChineseSignal(titleText) {
             return .chineseSimplified
         }
-
         if containsPlausibleLatinTitle(titleText) {
             return .englishUnitedStates
         }
@@ -96,8 +128,8 @@ enum PokemonOcrLanguagePassPlanner {
     }
 
     private static func reorderedLanguagePasses(
-        primaryLanguageFirst primaryLanguage: PokemonRecognitionLanguage
-    ) -> [[PokemonRecognitionLanguage]] {
+        primaryLanguageFirst primaryLanguage: PokemonCardNameLanguage
+    ) -> [[PokemonCardNameLanguage]] {
         let primaryPass = languagePass(containing: primaryLanguage)
         guard let primaryPass else {
             return defaultLanguagePasses
@@ -107,8 +139,8 @@ enum PokemonOcrLanguagePassPlanner {
     }
 
     private static func languagePass(
-        containing language: PokemonRecognitionLanguage
-    ) -> [PokemonRecognitionLanguage]? {
+        containing language: PokemonCardNameLanguage
+    ) -> [PokemonCardNameLanguage]? {
         defaultLanguagePasses.first { pass in pass.contains(language) }
     }
 
@@ -172,7 +204,7 @@ enum PokemonOcrLanguagePassPlanner {
         return !PokemonCardTitleNormalizer.containsSupportedNameScript(text)
     }
 
-    private static func languagePriority(_ language: PokemonRecognitionLanguage) -> Int {
+    private static func languagePriority(_ language: PokemonCardNameLanguage) -> Int {
         switch language {
         case .japaneseJapan:
             0
@@ -184,6 +216,14 @@ enum PokemonOcrLanguagePassPlanner {
             3
         case .englishUnitedStates:
             4
+        case .frenchFrance:
+            5
+        case .germanGermany:
+            6
+        case .italianItaly:
+            7
+        case .spanishSpain:
+            8
         }
     }
 }

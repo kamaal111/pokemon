@@ -29,7 +29,10 @@ let package = Package(
         ),
         .target(
             name: "PokemonCardCropping",
-            dependencies: ["PokemonCardImageProcessing"],
+            dependencies: [
+                "PokemonCardImageProcessing",
+                "PokemonCardUtilities",
+            ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
             ]
@@ -65,6 +68,7 @@ let package = Package(
                 "PokemonCardDetection",
                 "PokemonCardFocusQuality",
                 "PokemonCardStability",
+                "PokemonCardTextExtraction",
                 "PokemonCardUtilities",
             ],
             swiftSettings: [
@@ -75,6 +79,7 @@ let package = Package(
             name: "PokemonCardTextExtraction",
             dependencies: [
                 "PokemonCardImageProcessing",
+                "PokemonCardUtilities",
                 .product(name: "KamaalLogger", package: "KamaalSwift"),
                 .product(name: "KamaalExtensions", package: "KamaalSwift"),
             ],
@@ -148,6 +153,7 @@ let package = Package(
                 "PokemonCardCropping",
                 "PokemonCardDetection",
                 "PokemonCardFocusQuality",
+                "PokemonCardTextExtraction",
                 "PokemonCardPipelineTestSupport",
             ],
             swiftSettings: [
