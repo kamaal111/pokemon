@@ -6,6 +6,7 @@
 //
 
 import KamaalLogger
+import PokemonCardTextRecognition
 import UIKit
 import Vision
 
@@ -119,7 +120,7 @@ public struct PokemonCardTextExtractor: Sendable {
             minimumTextHeight: pass.minimumTextHeight,
             regionOfInterest: pass.regionOfInterest
         )
-        let broadResult = await recognizer.recognizeText(in: pass.image, configuration: broadConfiguration)
+        let broadResult = recognizer.recognizeText(in: pass.image, configuration: broadConfiguration)
         let rawObservations: [PokemonCardRawTextObservation]
         let usedExplicitRecognitionLanguages: Bool
         var errorMessage: String?
@@ -137,7 +138,7 @@ public struct PokemonCardTextExtractor: Sendable {
                 minimumTextHeight: pass.minimumTextHeight,
                 regionOfInterest: pass.regionOfInterest
             )
-            let fallbackResult = await recognizer.recognizeText(in: pass.image, configuration: fallbackConfiguration)
+            let fallbackResult = recognizer.recognizeText(in: pass.image, configuration: fallbackConfiguration)
             switch fallbackResult {
             case .success(let values):
                 logger.info("Fallback pass succeeded label=\(pass.label) candidateCount=\(values.count)")
@@ -155,7 +156,7 @@ public struct PokemonCardTextExtractor: Sendable {
                         rawObservations: [],
                         errorMessage: fallbackError.localizedDescription
                     ),
-                    fallbackError
+                    Self.extractionError(from: fallbackError)
                 )
             }
         }
@@ -199,7 +200,9 @@ public struct PokemonCardTextExtractor: Sendable {
             return PokemonCardTextObservation(
                 text: rawObservation.text,
                 normalizedText: normalizedText,
-                topCandidates: rawObservation.topCandidates,
+                topCandidates: rawObservation.topCandidates.map {
+                    PokemonCardTextCandidate(text: $0.text, confidence: $0.confidence)
+                },
                 confidence: rawObservation.confidence,
                 normalizedBoundingBox: projectedBox,
                 sourcePassLabel: pass.label,
@@ -231,4 +234,15 @@ public struct PokemonCardTextExtractor: Sendable {
     }
 
     private static let recognitionLevel: VNRequestTextRecognitionLevel = .accurate
+
+    private static func extractionError(
+        from error: PokemonCardTextRecognitionError
+    ) -> PokemonCardTextExtractionError {
+        switch error {
+        case .invalidImage:
+            .invalidImage
+        case .requestFailed(let message):
+            .requestFailed(message)
+        }
+    }
 }

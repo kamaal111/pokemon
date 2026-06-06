@@ -29,6 +29,13 @@ struct PokemonCardShapeDetectorTests {
     }
 
     @Test
+    func `Should accept landscape full card rectangles near reciprocal ratio`() {
+        let detection = detection(rect: CGRect(x: 0.16, y: 0.24, width: 0.56, height: 0.40), confidence: 0.82)
+
+        #expect(PokemonCardShapeDetector.isValid(detection))
+    }
+
+    @Test
     func `Should accept angled perspective outside old ratio limit`() {
         let detection = detection(
             rect: CGRect(x: 0.18, y: 0.16, width: 0.45, height: 0.49),
@@ -82,11 +89,11 @@ struct PokemonCardShapeDetectorTests {
     @Test
     func `Should reject invalid rectangle candidates`() {
         let invalidDetections = [
-            detection(rect: CGRect(x: 0.10, y: 0.20, width: 0.55, height: 0.32), confidence: 0.90),
+            detection(rect: CGRect(x: 0.10, y: 0.20, width: 0.60, height: 0.30), confidence: 0.90),
             detection(rect: CGRect(x: 0.30, y: 0.30, width: 0.08, height: 0.11), confidence: 0.90),
             detection(rect: CGRect(x: 0.20, y: 0.20, width: 0.34, height: 0.48), confidence: 0.40),
             detection(rect: CGRect(x: 0.01, y: 0.01, width: 0.96, height: 0.92), confidence: 0.90),
-            detection(rect: CGRect(x: 0.10, y: 0.10, width: 0.70, height: 0.44), confidence: 0.90),
+            detection(rect: CGRect(x: 0.10, y: 0.10, width: 0.72, height: 0.34), confidence: 0.90),
         ]
 
         for invalidDetection in invalidDetections {

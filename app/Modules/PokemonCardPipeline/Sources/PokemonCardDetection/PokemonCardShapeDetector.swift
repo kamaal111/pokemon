@@ -15,7 +15,7 @@ private let pokemonCardTargetAspectRatio: CGFloat = 63 / 88
 public struct PokemonCardShapeDetection: Equatable, Sendable {
     public let normalizedBoundingBox: CGRect
     public let confidence: Float
-    let normalizedCorners: PokemonCardShapeQuadrilateral?
+    public let normalizedCorners: PokemonCardShapeQuadrilateral?
 
     init(
         normalizedBoundingBox: CGRect,
@@ -33,13 +33,13 @@ public enum PokemonCardShapeDetectionSource: String, Equatable, Sendable {
     case fallback = "Fallback"
 }
 
-struct PokemonCardShapeQuadrilateral: Equatable, Sendable {
-    let topLeft: CGPoint
-    let topRight: CGPoint
-    let bottomRight: CGPoint
-    let bottomLeft: CGPoint
+public struct PokemonCardShapeQuadrilateral: Equatable, Sendable {
+    public let topLeft: CGPoint
+    public let topRight: CGPoint
+    public let bottomRight: CGPoint
+    public let bottomLeft: CGPoint
 
-    init(topLeft: CGPoint, topRight: CGPoint, bottomRight: CGPoint, bottomLeft: CGPoint) {
+    public init(topLeft: CGPoint, topRight: CGPoint, bottomRight: CGPoint, bottomLeft: CGPoint) {
         self.topLeft = topLeft
         self.topRight = topRight
         self.bottomRight = bottomRight
@@ -224,7 +224,7 @@ public struct PokemonCardShapeDetector {
             minimumAreaFraction: 0.035,
             maximumAreaFraction: 0.86,
             minimumToleratedAspectRatio: 0.45,
-            maximumToleratedAspectRatio: 1.05,
+            maximumToleratedAspectRatio: 1.65,
             minimumAcceptedScore: 0.55,
             maximumObservations: 8
         )
@@ -386,7 +386,7 @@ public struct PokemonCardShapeDetector {
         if area > configuration.maximumAreaFraction {
             rejectionReasons.append(.tooLarge)
         }
-        if boundingAspectRatio > 1.25 || scoringAspectRatio < 0.32 || scoringAspectRatio > 1.18 {
+        if boundingAspectRatio > 1.75 || scoringAspectRatio < 0.32 || scoringAspectRatio > 1.75 {
             rejectionReasons.append(.unlikelyOrientation)
         }
         if score < configuration.minimumAcceptedScore {
@@ -434,7 +434,7 @@ public struct PokemonCardShapeDetector {
                     && rect.height >= 10
                     && areaFraction >= configuration.minimumAreaFraction * 0.45
                     && areaFraction <= configuration.maximumAreaFraction
-                    && rect.width / rect.height <= 1.25
+                    && rect.width / rect.height <= 1.75
             }
             .sorted { lhs, rhs in
                 analysisImage.score(component: lhs) > analysisImage.score(component: rhs)
@@ -546,7 +546,8 @@ public struct PokemonCardShapeDetector {
             return clamped(1 - ((aspectRatio - configuration.maximumToleratedAspectRatio) / 0.20))
         }
 
-        let target = pokemonCardTargetAspectRatio
+        let landscapeTarget = 1 / pokemonCardTargetAspectRatio
+        let target = aspectRatio > 1 ? landscapeTarget : pokemonCardTargetAspectRatio
         let maximumDeviation = max(
             target - configuration.minimumToleratedAspectRatio,
             configuration.maximumToleratedAspectRatio - target
@@ -572,7 +573,7 @@ public struct PokemonCardShapeDetector {
         guard boundingBox.width > 0, boundingBox.height > 0 else { return 0.1 }
 
         let sideAspectRatio = quadrilateral.averageSideAspectRatio
-        guard sideAspectRatio > 0.28, sideAspectRatio < 1.22 else {
+        guard sideAspectRatio > 0.28, sideAspectRatio < 1.75 else {
             return 0.35
         }
 

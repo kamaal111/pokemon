@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Foundation
+import PokemonCardTextRecognition
 import Testing
 import UIKit
 import Vision
@@ -45,7 +46,7 @@ struct PokemonCardNameExtractorTests {
         _ = try await extractor.extractName(from: image).get()
 
         #expect(
-            await recognizer.configurations.first?.regionOfInterest
+            recognizer.configurations.first?.regionOfInterest
                 == PokemonCardTitleCropper.titleSearchRegion(for: image.size))
     }
 
@@ -73,7 +74,7 @@ struct PokemonCardNameExtractorTests {
         let result = try await extractor.extractName(from: Self.image()).get()
 
         #expect(result.pokemonName == "リザードex")
-        #expect(await recognizer.configurations.dropFirst().first?.recognitionLanguages == ["ja-JP"])
+        #expect(recognizer.configurations.dropFirst().first?.recognitionLanguages == ["ja-JP"])
     }
 
     @Test
@@ -179,6 +180,27 @@ struct PokemonCardNameExtractorTests {
     }
 
     @Test
+    func `Should reject footer mechanics as pokemon names`() {
+        let selectedCandidate = PokemonCardNameCandidateSelector.chooseBestCandidate(
+            from: [
+                PokemonCardNameCandidate(
+                    text: "[저항력",
+                    confidence: 0.99,
+                    boundingBox: CGRect(x: 0.22, y: 0.88, width: 0.20, height: 0.04)
+                ),
+                PokemonCardNameCandidate(
+                    text: "N의 조로아",
+                    confidence: 0.82,
+                    boundingBox: CGRect(x: 0.23, y: 0.88, width: 0.25, height: 0.04)
+                ),
+            ],
+            preferredRegion: CGRect(x: 0.20, y: 0.85, width: 0.55, height: 0.11)
+        )
+
+        #expect(selectedCandidate?.normalizedText == "N의 조로아")
+    }
+
+    @Test
     func `Should extract Korean name instead of stage marker from fake recognizer`() async throws {
         let recognizer = FakePokemonCardTextRecognizer(responses: [
             [
@@ -211,7 +233,7 @@ struct PokemonCardNameExtractorTests {
     }
 }
 
-private actor FakePokemonCardTextRecognizer: PokemonCardTextRecognizing {
+private final class FakePokemonCardTextRecognizer: PokemonCardTextRecognizing, @unchecked Sendable {
     private var responses: [[PokemonCardRawTextObservation]]
     private(set) var configurations: [PokemonCardTextRecognizerConfiguration] = []
 
@@ -222,7 +244,7 @@ private actor FakePokemonCardTextRecognizer: PokemonCardTextRecognizing {
     func recognizeText(
         in image: UIImage,
         configuration: PokemonCardTextRecognizerConfiguration
-    ) async -> Result<[PokemonCardRawTextObservation], PokemonCardTextExtractionError> {
+    ) -> Result<[PokemonCardRawTextObservation], PokemonCardTextRecognitionError> {
         configurations.append(configuration)
         guard !responses.isEmpty else {
             return .success([])
@@ -239,7 +261,7 @@ private func rawObservation(
 ) -> PokemonCardRawTextObservation {
     PokemonCardRawTextObservation(
         text: text,
-        topCandidates: [PokemonCardTextCandidate(text: text, confidence: confidence)],
+        topCandidates: [PokemonCardRecognizedTextCandidate(text: text, confidence: confidence)],
         confidence: confidence,
         boundingBox: box
     )

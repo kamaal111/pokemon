@@ -7,6 +7,7 @@
 
 import Foundation
 import PokemonCardImageProcessing
+import PokemonCardTextRecognition
 import UIKit
 import Vision
 
@@ -138,7 +139,7 @@ public struct PokemonCardNameExtractor: Sendable {
             minimumTextHeight: 0.01,
             regionOfInterest: regionOfInterest
         )
-        let result = await recognizer.recognizeText(in: image, configuration: configuration)
+        let result = recognizer.recognizeText(in: image, configuration: configuration)
 
         return result.mapError { _ in PokemonCardNameExtractionError.textRecognitionFailed }
             .map { rawObservations in

@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import PokemonCardTextRecognition
 import Testing
 import UIKit
 import Vision
@@ -161,7 +162,7 @@ private struct FailingTextRecognizer: PokemonCardTextRecognizing {
     func recognizeText(
         in image: UIImage,
         configuration: PokemonCardTextRecognizerConfiguration
-    ) async -> Result<[PokemonCardRawTextObservation], PokemonCardTextExtractionError> {
+    ) -> Result<[PokemonCardRawTextObservation], PokemonCardTextRecognitionError> {
         .failure(.requestFailed("forced failure"))
     }
 }

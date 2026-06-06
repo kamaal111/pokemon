@@ -49,6 +49,13 @@
     {
       "target" : {
         "containerPath" : "container:Modules\/PokemonCardPipeline",
+        "identifier" : "PokemonCardOrientationCorrectionTests",
+        "name" : "PokemonCardOrientationCorrectionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Modules\/PokemonCardPipeline",
         "identifier" : "PokemonCardPipelineTests",
         "name" : "PokemonCardPipelineTests"
       }

@@ -26,6 +26,20 @@ struct PokemonCardCropperTests {
     }
 
     @Test
+    func `Should expand landscape candidate box to sideways Pokemon card dimensions`() {
+        let projection = PokemonCardCropper.cropProjection(
+            forCandidate: CGRect(x: 100, y: 120, width: 360, height: 250),
+            imageSize: CGSize(width: 800, height: 1_000),
+            bufferFraction: 0
+        )
+
+        #expect(
+            abs((projection.rect.width / projection.rect.height) - (1 / PokemonCardCropper.targetAspectRatio)) < 0.001)
+        #expect(abs(projection.rect.midX - 280) < 0.001)
+        #expect(abs(projection.rect.midY - 245) < 0.001)
+    }
+
+    @Test
     func `Should apply crop buffer on both axes`() {
         let unbuffered = PokemonCardCropper.cropProjection(
             forCandidate: CGRect(x: 200, y: 200, width: 315, height: 440),
@@ -93,6 +107,33 @@ struct PokemonCardCropperTests {
         #expect(result.cropRect.width > 280)
         #expect(result.cropRect.height > 400)
         #expect(!result.isClippedToImageBounds)
+    }
+
+    @Test
+    func `Should perspective correct detected quadrilateral crop`() throws {
+        let imageSize = CGSize(width: 520, height: 520)
+        let cardRect = CGRect(x: 170, y: 110, width: 180, height: 252)
+        let rotation = CGFloat.pi / 7
+        let image = titledCardImage(imageSize: imageSize, cardRect: cardRect, rotation: rotation)
+        let quadrilateral = visionQuadrilateral(for: cardRect, in: imageSize, rotation: rotation)
+
+        let result = try PokemonCardCropper.cropCard(
+            from: image,
+            detectedNormalizedCardQuadrilateral: quadrilateral,
+            detectedNormalizedCardRect: quadrilateral.boundingBox
+        ).get()
+        let topBandColor = averageColor(
+            in: CGRect(x: 0.20, y: 0.06, width: 0.60, height: 0.10),
+            image: result.cropImage
+        )
+        let bottomBandColor = averageColor(
+            in: CGRect(x: 0.20, y: 0.82, width: 0.60, height: 0.10),
+            image: result.cropImage
+        )
+
+        #expect(result.cropImage.size.height > result.cropImage.size.width)
+        #expect(topBandColor.red > topBandColor.blue + 0.25)
+        #expect(bottomBandColor.blue > bottomBandColor.red + 0.25)
     }
 
     @Test
@@ -270,6 +311,131 @@ struct PokemonCardCropperTests {
             UIColor.white.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }
+    }
+
+    private func titledCardImage(
+        imageSize: CGSize,
+        cardRect: CGRect,
+        rotation: CGFloat
+    ) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: imageSize)
+
+        return renderer.image { context in
+            UIColor(red: 0.92, green: 0.92, blue: 0.90, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: imageSize))
+
+            context.cgContext.saveGState()
+            context.cgContext.translateBy(x: cardRect.midX, y: cardRect.midY)
+            context.cgContext.rotate(by: rotation)
+            context.cgContext.translateBy(x: -cardRect.midX, y: -cardRect.midY)
+
+            UIColor.black.setFill()
+            context.fill(cardRect)
+            UIColor.white.setFill()
+            context.fill(cardRect.insetBy(dx: 8, dy: 8))
+            UIColor.red.setFill()
+            context.fill(CGRect(x: cardRect.minX + 18, y: cardRect.minY + 16, width: 112, height: 24))
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: cardRect.minX + 24, y: cardRect.maxY - 58, width: 132, height: 34))
+
+            context.cgContext.restoreGState()
+        }
+    }
+
+    private func visionQuadrilateral(
+        for rect: CGRect,
+        in imageSize: CGSize,
+        rotation: CGFloat
+    ) -> PokemonCardCropQuadrilateral {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+
+        return PokemonCardCropQuadrilateral(
+            topLeft: visionPoint(rotated(CGPoint(x: rect.minX, y: rect.minY), around: center, by: rotation), imageSize),
+            topRight: visionPoint(
+                rotated(CGPoint(x: rect.maxX, y: rect.minY), around: center, by: rotation), imageSize),
+            bottomRight: visionPoint(
+                rotated(CGPoint(x: rect.maxX, y: rect.maxY), around: center, by: rotation),
+                imageSize
+            ),
+            bottomLeft: visionPoint(
+                rotated(CGPoint(x: rect.minX, y: rect.maxY), around: center, by: rotation), imageSize)
+        )
+    }
+
+    private func rotated(
+        _ point: CGPoint,
+        around center: CGPoint,
+        by radians: CGFloat
+    ) -> CGPoint {
+        let translatedX = point.x - center.x
+        let translatedY = point.y - center.y
+
+        return CGPoint(
+            x: center.x + (translatedX * cos(radians)) - (translatedY * sin(radians)),
+            y: center.y + (translatedX * sin(radians)) + (translatedY * cos(radians))
+        )
+    }
+
+    private func visionPoint(_ point: CGPoint, _ imageSize: CGSize) -> CGPoint {
+        CGPoint(x: point.x / imageSize.width, y: 1 - (point.y / imageSize.height))
+    }
+
+    private func averageColor(
+        in normalizedRect: CGRect,
+        image: UIImage
+    ) -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
+        guard let cgImage = image.cgImage else { return (0, 0, 0) }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var bytes = [UInt8](repeating: 0, count: height * bytesPerRow)
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return (0, 0, 0) }
+        guard
+            let context = CGContext(
+                data: &bytes,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: bytesPerRow,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else {
+            return (0, 0, 0)
+        }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        let sampleRect = CGRect(
+            x: normalizedRect.minX * CGFloat(width),
+            y: normalizedRect.minY * CGFloat(height),
+            width: normalizedRect.width * CGFloat(width),
+            height: normalizedRect.height * CGFloat(height)
+        ).integral
+        let minimumX = max(0, Int(sampleRect.minX))
+        let minimumY = max(0, Int(sampleRect.minY))
+        let maximumX = min(width, Int(sampleRect.maxX))
+        let maximumY = min(height, Int(sampleRect.maxY))
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var count: CGFloat = 0
+
+        for y in minimumY..<maximumY {
+            for x in minimumX..<maximumX {
+                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
+                red += CGFloat(bytes[offset]) / 255
+                green += CGFloat(bytes[offset + 1]) / 255
+                blue += CGFloat(bytes[offset + 2]) / 255
+                count += 1
+            }
+        }
+
+        guard count > 0 else { return (0, 0, 0) }
+
+        return (red / count, green / count, blue / count)
     }
 
     private func assert(_ rect: CGRect, contains expected: CGRect) {

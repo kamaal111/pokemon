@@ -9,7 +9,33 @@ import CoreGraphics
 import Foundation
 
 enum PokemonCardNameCandidateSelector {
-    private static let rejectedFragments = ["hp", "기본", "진화", "進化", "から", "테라스탈"]
+    private static let rejectedFragments = [
+        "hp",
+        "기본",
+        "진화",
+        "進化",
+        "から",
+        "테라스탈",
+        "약점",
+        "저항력",
+        "후퇴",
+        "弱点",
+        "抵抗力",
+        "にげる",
+        "撤退",
+        "전국도감",
+        "illus",
+        "pokemon",
+        "pokémon",
+        "nintendo",
+        "creatures",
+        "gamefreak",
+        "상대의모습",
+        "놀라게",
+        "둔갑",
+        "둔잡",
+        "말수",
+    ]
     private static let latinSuffixes = ["ex", "EX", "GX", "V", "VMAX", "VSTAR"]
 
     static func chooseBestCandidate(

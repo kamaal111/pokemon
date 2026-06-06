@@ -6,6 +6,8 @@
 //
 
 import CoreGraphics
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import Foundation
 import PokemonCardImageProcessing
 import PokemonCardUtilities
@@ -58,6 +60,29 @@ public struct PokemonCardCropResult: Sendable {
     }
 }
 
+public struct PokemonCardCropQuadrilateral: Equatable, Sendable {
+    public let topLeft: CGPoint
+    public let topRight: CGPoint
+    public let bottomRight: CGPoint
+    public let bottomLeft: CGPoint
+
+    public init(topLeft: CGPoint, topRight: CGPoint, bottomRight: CGPoint, bottomLeft: CGPoint) {
+        self.topLeft = topLeft
+        self.topRight = topRight
+        self.bottomRight = bottomRight
+        self.bottomLeft = bottomLeft
+    }
+
+    var boundingBox: CGRect {
+        let minimumX = min(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x)
+        let maximumX = max(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x)
+        let minimumY = min(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y)
+        let maximumY = max(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y)
+
+        return CGRect(x: minimumX, y: minimumY, width: maximumX - minimumX, height: maximumY - minimumY)
+    }
+}
+
 public struct PokemonCardCropper {
     struct Configuration: Sendable {
         let bufferFraction: CGFloat
@@ -74,17 +99,57 @@ public struct PokemonCardCropper {
         from image: UIImage,
         detectedNormalizedCardRect: CGRect? = nil
     ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
-        cropCard(from: image, detectedNormalizedCardRect: detectedNormalizedCardRect, configuration: .default)
+        cropCard(
+            from: image,
+            detectedNormalizedCardQuadrilateral: nil,
+            detectedNormalizedCardRect: detectedNormalizedCardRect,
+            configuration: .default
+        )
+    }
+
+    public static func cropCard(
+        from image: UIImage,
+        detectedNormalizedCardQuadrilateral: PokemonCardCropQuadrilateral?,
+        detectedNormalizedCardRect: CGRect?
+    ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
+        cropCard(
+            from: image,
+            detectedNormalizedCardQuadrilateral: detectedNormalizedCardQuadrilateral,
+            detectedNormalizedCardRect: detectedNormalizedCardRect,
+            configuration: .default
+        )
     }
 
     static func cropCard(
         from image: UIImage,
+        detectedNormalizedCardQuadrilateral: PokemonCardCropQuadrilateral? = nil,
         detectedNormalizedCardRect: CGRect? = nil,
         configuration: Configuration
     ) -> Result<PokemonCardCropResult, PokemonCardCropError> {
         let normalizedImage = PokemonCardImageNormalizer.normalizedForPokemonOcr(image)
         guard normalizedImage.size.width > 0, normalizedImage.size.height > 0 else { return .failure(.invalidImage) }
         guard normalizedImage.cgImage != nil else { return .failure(.invalidImage) }
+
+        if let quadrilateral = detectedNormalizedCardQuadrilateral,
+            let perspectiveCrop = perspectiveCorrectedCrop(
+                from: normalizedImage,
+                normalizedQuadrilateral: quadrilateral
+            )
+        {
+            let cropRect = imageRect(
+                fromVisionNormalizedRect: quadrilateral.boundingBox,
+                imageSize: normalizedImage.size
+            )
+
+            return .success(
+                PokemonCardCropResult(
+                    originalImage: normalizedImage,
+                    cropImage: perspectiveCrop,
+                    cropRect: cropRect,
+                    normalizedCropRect: normalizedRect(for: cropRect, imageSize: normalizedImage.size),
+                    isClippedToImageBounds: isClipped(quadrilateral)
+                ))
+        }
 
         let candidate =
             detectedNormalizedCardRect.map {
@@ -120,11 +185,12 @@ public struct PokemonCardCropper {
         guard candidate.width > 0, candidate.height > 0 else { return (.zero, false) }
 
         let candidateAspectRatio = candidate.width / candidate.height
+        let fittingAspectRatio = candidateAspectRatio > 1 ? 1 / targetAspectRatio : targetAspectRatio
         let fittedSize =
-            if candidateAspectRatio > targetAspectRatio {
-                CGSize(width: candidate.width, height: candidate.width / targetAspectRatio)
+            if candidateAspectRatio > fittingAspectRatio {
+                CGSize(width: candidate.width, height: candidate.width / fittingAspectRatio)
             } else {
-                CGSize(width: candidate.height * targetAspectRatio, height: candidate.height)
+                CGSize(width: candidate.height * fittingAspectRatio, height: candidate.height)
             }
 
         let bufferedSize = CGSize(
@@ -232,6 +298,55 @@ public struct PokemonCardCropper {
         }
 
         return UIImage(cgImage: croppedImage, scale: normalizedImage.scale, orientation: .up)
+    }
+
+    private static func perspectiveCorrectedCrop(
+        from normalizedImage: UIImage,
+        normalizedQuadrilateral: PokemonCardCropQuadrilateral
+    ) -> UIImage? {
+        guard let cgImage = normalizedImage.cgImage else { return nil }
+
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let filter = CIFilter.perspectiveCorrection()
+        filter.inputImage = CIImage(cgImage: cgImage)
+        filter.topLeft = ciPoint(fromVisionNormalizedPoint: normalizedQuadrilateral.topLeft, imageSize: imageSize)
+        filter.topRight = ciPoint(fromVisionNormalizedPoint: normalizedQuadrilateral.topRight, imageSize: imageSize)
+        filter.bottomRight = ciPoint(
+            fromVisionNormalizedPoint: normalizedQuadrilateral.bottomRight, imageSize: imageSize)
+        filter.bottomLeft = ciPoint(fromVisionNormalizedPoint: normalizedQuadrilateral.bottomLeft, imageSize: imageSize)
+
+        guard let outputImage = filter.outputImage else { return nil }
+
+        let extent = outputImage.extent.integral
+        guard extent.width > 0 else { return nil }
+        guard extent.height > 0 else { return nil }
+
+        let context = CIContext()
+        guard let correctedImage = context.createCGImage(outputImage, from: extent) else {
+            return nil
+        }
+
+        return UIImage(cgImage: correctedImage, scale: normalizedImage.scale, orientation: .up)
+    }
+
+    private static func ciPoint(
+        fromVisionNormalizedPoint point: CGPoint,
+        imageSize: CGSize
+    ) -> CGPoint {
+        CGPoint(x: point.x * imageSize.width, y: point.y * imageSize.height)
+    }
+
+    private static func isClipped(_ quadrilateral: PokemonCardCropQuadrilateral) -> Bool {
+        let points = [
+            quadrilateral.topLeft,
+            quadrilateral.topRight,
+            quadrilateral.bottomRight,
+            quadrilateral.bottomLeft,
+        ]
+
+        return points.contains { point in
+            point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1
+        }
     }
 }
 

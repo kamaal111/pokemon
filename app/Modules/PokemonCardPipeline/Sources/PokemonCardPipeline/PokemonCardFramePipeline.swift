@@ -10,6 +10,7 @@ import Foundation
 import PokemonCardCropping
 import PokemonCardDetection
 import PokemonCardFocusQuality
+import PokemonCardOrientationCorrection
 import PokemonCardStability
 import PokemonCardTextExtraction
 import PokemonCardUtilities
@@ -18,12 +19,15 @@ import UIKit
 public enum PokemonCardPipelineError: LocalizedError, Equatable, Sendable {
     case detectionFailed(PokemonCardShapeDetectionError)
     case cropFailed(PokemonCardCropError)
+    case orientationCorrectionFailed(PokemonCardOrientationCorrectionError)
 
     public var errorDescription: String? {
         switch self {
         case .detectionFailed(let error):
             error.localizedDescription
         case .cropFailed(let error):
+            error.localizedDescription
+        case .orientationCorrectionFailed(let error):
             error.localizedDescription
         }
     }
@@ -65,11 +69,16 @@ public struct PokemonCardPipelineFrameResult {
 
 public class PokemonCardFramePipeline {
     typealias DetectionStage = (UIImage) -> Result<PokemonCardShapeDetectionReport, PokemonCardShapeDetectionError>
-    typealias CropStage = (UIImage, CGRect) -> Result<PokemonCardCropResult, PokemonCardCropError>
+    typealias CropStage = (UIImage, PokemonCardShapeDetection) -> Result<PokemonCardCropResult, PokemonCardCropError>
+    typealias OrientationCorrectionStage = (PokemonCardCropResult) -> Result<
+        PokemonCardCropResult,
+        PokemonCardOrientationCorrectionError
+    >
     typealias PokemonNameStage = @Sendable (UIImage) async -> String?
 
     private let detectCardShape: DetectionStage
     private let cropCard: CropStage
+    private let correctOrientation: OrientationCorrectionStage
     private let extractPokemonName: PokemonNameStage
     private var autoCaptureGate: PokemonCardAutoCaptureGate
     private var bestFocusedFrames: [FocusedFrame] = []
@@ -77,9 +86,14 @@ public class PokemonCardFramePipeline {
     public convenience init() {
         self.init(
             detectCardShape: PokemonCardShapeDetector.detectCardShapeReport(in:),
-            cropCard: { image, rect in
-                PokemonCardCropper.cropCard(from: image, detectedNormalizedCardRect: rect)
+            cropCard: { image, detection in
+                PokemonCardCropper.cropCard(
+                    from: image,
+                    detectedNormalizedCardQuadrilateral: cropQuadrilateral(from: detection.normalizedCorners),
+                    detectedNormalizedCardRect: detection.normalizedBoundingBox
+                )
             },
+            correctOrientation: Self.handleCorrectOrientation(of:),
             extractPokemonName: Self.handleExtractPokemonName(from:),
             autoCaptureGate: PokemonCardAutoCaptureGate()
         )
@@ -88,11 +102,13 @@ public class PokemonCardFramePipeline {
     init(
         detectCardShape: @escaping DetectionStage,
         cropCard: @escaping CropStage,
+        correctOrientation: @escaping OrientationCorrectionStage = { .success($0) },
         extractPokemonName: @escaping PokemonNameStage,
         autoCaptureGate: PokemonCardAutoCaptureGate
     ) {
         self.detectCardShape = detectCardShape
         self.cropCard = cropCard
+        self.correctOrientation = correctOrientation
         self.extractPokemonName = extractPokemonName
         self.autoCaptureGate = autoCaptureGate
     }
@@ -123,12 +139,20 @@ public class PokemonCardFramePipeline {
                 ))
         }
 
+        let rawCropResult: PokemonCardCropResult
+        switch cropCard(frame, detection) {
+        case .success(let value):
+            rawCropResult = value
+        case .failure(let error):
+            return .failure(.cropFailed(error))
+        }
+
         let cropResult: PokemonCardCropResult
-        switch cropCard(frame, detection.normalizedBoundingBox) {
+        switch correctOrientation(rawCropResult) {
         case .success(let value):
             cropResult = value
         case .failure(let error):
-            return .failure(.cropFailed(error))
+            return .failure(.orientationCorrectionFailed(error))
         }
 
         let focusQuality = PokemonCardFocusQualityAnalyzer.evaluate(
@@ -199,6 +223,25 @@ public class PokemonCardFramePipeline {
         return value.pokemonName
     }
 
+    private static func handleCorrectOrientation(
+        of cropResult: PokemonCardCropResult
+    ) -> Result<PokemonCardCropResult, PokemonCardOrientationCorrectionError> {
+        let result = PokemonCardOrientationCorrector().correctOrientation(of: cropResult.cropImage)
+        switch result {
+        case .success(let correctionResult):
+            return .success(
+                PokemonCardCropResult(
+                    originalImage: cropResult.originalImage,
+                    cropImage: correctionResult.correctedImage,
+                    cropRect: cropResult.cropRect,
+                    normalizedCropRect: cropResult.normalizedCropRect,
+                    isClippedToImageBounds: cropResult.isClippedToImageBounds
+                ))
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
     private func appendBestFrame(
         frame: UIImage,
         detection: PokemonCardShapeDetection,
@@ -220,6 +263,19 @@ public class PokemonCardFramePipeline {
     }
 
     private static let maximumBestFrameCount = 8
+}
+
+private func cropQuadrilateral(
+    from quadrilateral: PokemonCardShapeQuadrilateral?
+) -> PokemonCardCropQuadrilateral? {
+    guard let quadrilateral else { return nil }
+
+    return PokemonCardCropQuadrilateral(
+        topLeft: quadrilateral.topLeft,
+        topRight: quadrilateral.topRight,
+        bottomRight: quadrilateral.bottomRight,
+        bottomLeft: quadrilateral.bottomLeft
+    )
 }
 
 private struct FocusedFrame {

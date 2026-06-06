@@ -13,8 +13,10 @@ let package = Package(
         .library(name: "PokemonCardCropping", targets: ["PokemonCardCropping"]),
         .library(name: "PokemonCardDetection", targets: ["PokemonCardDetection"]),
         .library(name: "PokemonCardFocusQuality", targets: ["PokemonCardFocusQuality"]),
+        .library(name: "PokemonCardOrientationCorrection", targets: ["PokemonCardOrientationCorrection"]),
         .library(name: "PokemonCardStability", targets: ["PokemonCardStability"]),
         .library(name: "PokemonCardTextExtraction", targets: ["PokemonCardTextExtraction"]),
+        .library(name: "PokemonCardTextRecognition", targets: ["PokemonCardTextRecognition"]),
         .library(name: "PokemonCardUtilities", targets: ["PokemonCardUtilities"]),
     ],
     dependencies: [
@@ -52,6 +54,17 @@ let package = Package(
             ]
         ),
         .target(
+            name: "PokemonCardOrientationCorrection",
+            dependencies: [
+                "PokemonCardImageProcessing",
+                "PokemonCardTextRecognition",
+                "PokemonCardUtilities",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
             name: "PokemonCardStability",
             dependencies: [
                 "PokemonCardDetection",
@@ -67,6 +80,7 @@ let package = Package(
                 "PokemonCardCropping",
                 "PokemonCardDetection",
                 "PokemonCardFocusQuality",
+                "PokemonCardOrientationCorrection",
                 "PokemonCardStability",
                 "PokemonCardTextExtraction",
                 "PokemonCardUtilities",
@@ -79,10 +93,18 @@ let package = Package(
             name: "PokemonCardTextExtraction",
             dependencies: [
                 "PokemonCardImageProcessing",
+                "PokemonCardTextRecognition",
                 "PokemonCardUtilities",
                 .product(name: "KamaalLogger", package: "KamaalSwift"),
                 .product(name: "KamaalExtensions", package: "KamaalSwift"),
             ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .target(
+            name: "PokemonCardTextRecognition",
+            dependencies: [],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
             ]
@@ -153,8 +175,25 @@ let package = Package(
                 "PokemonCardCropping",
                 "PokemonCardDetection",
                 "PokemonCardFocusQuality",
+                "PokemonCardOrientationCorrection",
                 "PokemonCardTextExtraction",
                 "PokemonCardPipelineTestSupport",
+            ],
+            swiftSettings: [
+                .treatAllWarnings(as: .error)
+            ]
+        ),
+        .testTarget(
+            name: "PokemonCardOrientationCorrectionTests",
+            dependencies: [
+                "PokemonCardCropping",
+                "PokemonCardDetection",
+                "PokemonCardOrientationCorrection",
+                "PokemonCardTextExtraction",
+                "PokemonCardTextRecognition",
+            ],
+            resources: [
+                .process("Internal/Resources")
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error)
@@ -164,6 +203,7 @@ let package = Package(
             name: "PokemonCardTextExtractionTests",
             dependencies: [
                 "PokemonCardTextExtraction",
+                "PokemonCardTextRecognition",
                 "PokemonCardUtilities",
             ],
             resources: [
