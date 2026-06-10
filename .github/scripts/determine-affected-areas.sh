@@ -22,10 +22,10 @@ fi
 git fetch --no-tags --prune --depth=1 origin main
 base_commit="$(git merge-base HEAD origin/main)"
 changed_files=()
-while IFS= read -r file
+while IFS= read -r -d '' file
 do
   changed_files+=("$file")
-done < <(git diff --name-only "$base_commit"...HEAD)
+done < <(git diff --name-only -z "$base_commit"...HEAD)
 
 if ((${#changed_files[@]} == 0))
 then
@@ -39,24 +39,40 @@ api=false
 app=false
 skills=false
 
+matches_any_pattern() {
+  local file="$1"
+  local pattern_list="$2"
+  local pattern
+  local patterns=()
+
+  IFS='|' read -r -a patterns <<< "$pattern_list"
+  for pattern in "${patterns[@]}"
+  do
+    if [[ "$file" == $pattern ]]
+    then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 for file in "${changed_files[@]}"
 do
-  # Use eval to properly expand pattern variables in case statement
-  eval "case \"$file\" in
-    $BOTH)
-      api=true
-      app=true
-      ;;
-    $API)
-      api=true
-      ;;
-    $APP)
-      app=true
-      ;;
-    $SKILLS)
-      skills=true
-      ;;
-  esac"
+  if matches_any_pattern "$file" "$BOTH"
+  then
+    api=true
+    app=true
+  elif matches_any_pattern "$file" "$API"
+  then
+    api=true
+  elif matches_any_pattern "$file" "$APP"
+  then
+    app=true
+  elif matches_any_pattern "$file" "$SKILLS"
+  then
+    skills=true
+  fi
 done
 
 echo "api=$api" >> "$GITHUB_OUTPUT"
