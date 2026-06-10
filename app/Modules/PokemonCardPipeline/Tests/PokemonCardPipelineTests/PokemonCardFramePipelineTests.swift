@@ -123,6 +123,35 @@ struct PokemonCardFramePipelineTests {
     }
 
     @Test
+    func `Should complete captured card with set identifier`() async throws {
+        let detection = Self.detection()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { _ in "Charizard VMAX" },
+            extractSetIdentifier: { image in
+                #expect(image.size == CGSize(width: 240, height: 336))
+                return "sv8a"
+            },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let completedCapture = await pipeline.completeCaptureText(for: capture)
+
+        #expect(capture.setIdentifier == nil)
+        #expect(completedCapture.pokemonName == "Charizard VMAX")
+        #expect(completedCapture.setIdentifier == "sv8a")
+    }
+
+    @Test
     func `Should keep captured card when pokemon name extraction fails`() async throws {
         let detection = Self.detection()
         var pipeline = PokemonCardFramePipeline(

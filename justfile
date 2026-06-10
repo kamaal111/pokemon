@@ -16,6 +16,10 @@ OCR_LEXICON_OUTPUT_PATH := env(
     "OCR_LEXICON_OUTPUT_PATH",
     "app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Resources/PokemonSpeciesLexicon.tsv"
 )
+OCR_SET_LEXICON_OUTPUT_PATH := env(
+    "OCR_SET_LEXICON_OUTPUT_PATH",
+    "app/Modules/PokemonCardPipeline/Sources/PokemonCardTextExtraction/Internal/Resources/PokemonSetIdentifierLexicon.tsv"
+)
 
 # List available commands
 default:
@@ -36,6 +40,11 @@ dev-api: prepare-api
 [working-directory("api")]
 seed-pokedex:
     {{ PNR }} seed:pokedex
+
+# Seed the Pokemon card set SQLite database
+[working-directory("api")]
+seed-card-sets:
+    {{ PNR }} seed:card-sets
 
 # Regenerate the OCR species lexicon from the local seeded Pokedex SQLite database
 generate-ocr-lexicon:
@@ -62,6 +71,29 @@ generate-ocr-lexicon:
         group by language_name, name
         order by language_name, name;
     " > "{{ OCR_LEXICON_OUTPUT_PATH }}"
+
+# Regenerate the OCR set identifier lexicon from the local seeded Pokemon card set SQLite database
+generate-ocr-set-lexicon:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+
+    sqlite3 -separator $'\t' api/.data/pokemon.sqlite "
+        select region, code
+        from (
+            select region, lower(trim(code)) as code
+            from pokemon_card_sets
+            where trim(code) <> ''
+              and (region <> 'en' or length(trim(code)) >= 3)
+            union
+            select region, lower(trim(ptcgo_code)) as code
+            from pokemon_card_sets
+            where ptcgo_code is not null
+              and trim(ptcgo_code) <> ''
+              and (region <> 'en' or length(trim(ptcgo_code)) >= 3)
+        )
+        group by region, code
+        order by region, code;
+    " > "{{ OCR_SET_LEXICON_OUTPUT_PATH }}"
 
 # Print the pnpm version declared in package.json
 pnpm-version:
@@ -104,10 +136,11 @@ db-up:
 db-reset-local:
     {{ PNR }} db:reset-local
 
-# Reset the local repo database file, recreate it from migrations, and reseed the pokedex
+# Reset the local repo database file, recreate it from migrations, and reseed local data
 [working-directory("api")]
 db-reseed-local: db-reset-local
     {{ PNR }} seed:pokedex
+    {{ PNR }} seed:card-sets
 
 # Run all verification checks
 [parallel]

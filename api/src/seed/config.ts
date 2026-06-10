@@ -11,3 +11,5 @@ export function getPokedexSeedDependencies(
 
   return { fetch: fetchImpl };
 }
+
+export const getCardSetsSeedDependencies = getPokedexSeedDependencies;

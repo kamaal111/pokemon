@@ -1,14 +1,15 @@
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import {
   pokemonSpecies,
+  pokemonCardSets,
   pokemonSpeciesGenera,
   pokemonSpeciesNames,
   pokemonSpeciesPokedexNumbers,
   seedSyncState,
 } from '../db/schema/index.ts';
 import { POKEDEX_SEED_SYNC_STATE_NAME } from './constants.ts';
-import type { NormalizedPokemonSpecies } from './types.ts';
+import type { NormalizedPokemonSpecies, PokemonCardSet } from './types.ts';
 import type { Database } from '../database/index.ts';
 
 export async function getContiguousSeededPrefix(database: Database): Promise<number> {
@@ -39,10 +40,18 @@ export async function getLastSuccessfulSeedSyncAt(database: Database): Promise<s
 }
 
 export async function markSuccessfulSeedSync(database: Database, syncedAt: string): Promise<void> {
+  await markSuccessfulNamedSeedSync(database, POKEDEX_SEED_SYNC_STATE_NAME, syncedAt);
+}
+
+export async function markSuccessfulNamedSeedSync(
+  database: Database,
+  seedName: string,
+  syncedAt: string,
+): Promise<void> {
   await database.db
     .insert(seedSyncState)
     .values({
-      seedName: POKEDEX_SEED_SYNC_STATE_NAME,
+      seedName,
       lastSuccessfulSyncAt: syncedAt,
     })
     .onConflictDoUpdate({
@@ -129,16 +138,68 @@ export async function insertPokemonSpecies(
   });
 }
 
+export async function upsertPokemonCardSets(
+  database: Database,
+  cardSets: PokemonCardSet[],
+): Promise<number> {
+  if (cardSets.length === 0) {
+    return 0;
+  }
+
+  let saved = 0;
+  await database.db.transaction(async (transaction) => {
+    for (const cardSet of cardSets) {
+      const existingCardSet = await transaction
+        .select({ code: pokemonCardSets.code })
+        .from(pokemonCardSets)
+        .where(
+          and(eq(pokemonCardSets.region, cardSet.region), eq(pokemonCardSets.code, cardSet.code)),
+        )
+        .limit(1);
+      if (existingCardSet.length === 0) {
+        saved += 1;
+      }
+
+      await transaction
+        .insert(pokemonCardSets)
+        .values({
+          code: cardSet.code,
+          name: cardSet.name,
+          region: cardSet.region,
+          source: cardSet.source,
+          ptcgoCode: cardSet.ptcgoCode,
+        })
+        .onConflictDoUpdate({
+          target: [pokemonCardSets.region, pokemonCardSets.code],
+          set: {
+            name: cardSet.name,
+            source: cardSet.source,
+            ptcgoCode: cardSet.ptcgoCode,
+          },
+        });
+    }
+  });
+
+  return saved;
+}
+
 export async function clearPokemonSpeciesTables(database: Database): Promise<void> {
   await database.db.delete(pokemonSpeciesNames);
   await database.db.delete(pokemonSpeciesGenera);
   await database.db.delete(pokemonSpeciesPokedexNumbers);
   await database.db.delete(pokemonSpecies);
+  await database.db.delete(pokemonCardSets);
   await database.db.delete(seedSyncState);
 }
 
 export async function countPokemonSpecies(database: Database): Promise<number> {
   const rows = await database.db.select({ id: pokemonSpecies.id }).from(pokemonSpecies);
+
+  return rows.length;
+}
+
+export async function countPokemonCardSets(database: Database): Promise<number> {
+  const rows = await database.db.select({ code: pokemonCardSets.code }).from(pokemonCardSets);
 
   return rows.length;
 }

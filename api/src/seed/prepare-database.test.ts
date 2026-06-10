@@ -47,6 +47,13 @@ describe('prepareDatabaseForPokedexSeed', () => {
           .get(),
       ).toEqual({ count: 1 });
       expect(
+        verifiedDatabase
+          .prepare(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'pokemon_card_sets'",
+          )
+          .get(),
+      ).toEqual({ count: 1 });
+      expect(
         verifiedDatabase.prepare('SELECT COUNT(*) AS count FROM __drizzle_migrations').get(),
       ).toEqual({ count: 1 });
       verifiedDatabase.close();

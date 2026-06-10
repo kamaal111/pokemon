@@ -74,6 +74,7 @@ describe('POST /seed/pokedex', () => {
       const apiModeApp = createApp({
         databaseConfig: { url: url.pathToFileURL(databasePath).toString() },
         pokedexSeedDependencies: seedDependencies,
+        cardSetsSeedDependencies: seedDependencies,
       });
 
       const response = await apiModeApp.request('http://localhost/seed/pokedex', {

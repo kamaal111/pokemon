@@ -1,9 +1,59 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "95cbd1f0-a6fd-479a-ace4-24a7db19fdc0",
+  "id": "07de0c43-9bd5-4de0-bf93-d0ca264a1e9c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "pokemon_card_sets": {
+      "name": "pokemon_card_sets",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ptcgo_code": {
+          "name": "ptcgo_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pokemon_card_sets_region_code_pk": {
+          "columns": ["region", "code"],
+          "name": "pokemon_card_sets_region_code_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "pokemon_species": {
       "name": "pokemon_species",
       "columns": {

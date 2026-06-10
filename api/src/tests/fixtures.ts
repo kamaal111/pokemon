@@ -53,6 +53,7 @@ export const integrationTest = baseTest
       app: createApp({
         databaseConfig: { url: _suiteSetup.url },
         pokedexSeedDependencies: seedDependencies,
+        cardSetsSeedDependencies: seedDependencies,
       }),
       seedDependencies,
     };
