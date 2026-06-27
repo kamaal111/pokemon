@@ -20,6 +20,7 @@ public struct PokemonOcrScreen: View {
     @State private var detectionReport: PokemonCardShapeDetectionReport?
     @State private var textExtractionResult: PokemonCardTextExtractionResult?
     @State private var pokemonName: String?
+    @State private var setIdentifier: String?
     @State private var errorMessage: String?
     @State private var isLoading = false
     @State private var isExtractingText = false
@@ -32,8 +33,8 @@ public struct PokemonOcrScreen: View {
                 VStack(alignment: .leading, spacing: 18) {
                     cameraSection
 
-                    if let pokemonName {
-                        pokemonNameSection(pokemonName)
+                    if pokemonName != nil || setIdentifier != nil {
+                        cardIdentitySection(name: pokemonName, setIdentifier: setIdentifier)
                     }
 
                     if let capturedImage {
@@ -67,20 +68,31 @@ public struct PokemonOcrScreen: View {
         }
     }
 
-    private func pokemonNameSection(_ name: String) -> some View {
+    private func cardIdentitySection(name: String?, setIdentifier: String?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Pokemon Name")
+            Text("Card Identity")
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            Text(name)
-                .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
-                .background(Color.green.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 4) {
+                if let name {
+                    Text(name)
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .textSelection(.enabled)
+                }
+
+                if let setIdentifier {
+                    Text("Set \(setIdentifier)")
+                        .font(.headline.monospaced())
+                        .textSelection(.enabled)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background(Color.green.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -296,6 +308,7 @@ public struct PokemonOcrScreen: View {
         result = nil
         textExtractionResult = nil
         pokemonName = nil
+        setIdentifier = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -317,6 +330,7 @@ public struct PokemonOcrScreen: View {
         result = nil
         textExtractionResult = nil
         pokemonName = nil
+        setIdentifier = nil
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -327,6 +341,7 @@ public struct PokemonOcrScreen: View {
         isLoading = true
         errorMessage = nil
         pokemonName = nil
+        setIdentifier = nil
         capturedImage = image
 
         Task.detached(priority: .userInitiated) {
@@ -354,6 +369,7 @@ public struct PokemonOcrScreen: View {
         capturedImage = capture.originalImage
         result = capture.cropResult
         pokemonName = capture.pokemonName
+        setIdentifier = capture.setIdentifier
         cameraState = .completed
         extractText(from: capture.cropResult.cropImage)
     }
@@ -364,6 +380,14 @@ public struct PokemonOcrScreen: View {
 
         Task.detached(priority: .userInitiated) {
             let extractionResult = await PokemonCardTextExtractor().extractText(from: image)
+            let setIdentifierResult = await PokemonCardSetIdentifierExtractor().extractSetIdentifier(from: image)
+            let extractedSetIdentifier: String?
+            switch setIdentifierResult {
+            case .success(let value):
+                extractedSetIdentifier = value.setIdentifier
+            case .failure:
+                extractedSetIdentifier = nil
+            }
 
             await MainActor.run {
                 switch extractionResult {
@@ -372,6 +396,8 @@ public struct PokemonOcrScreen: View {
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
+
+                setIdentifier = extractedSetIdentifier
 
                 isExtractingText = false
             }

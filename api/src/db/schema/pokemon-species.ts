@@ -62,6 +62,18 @@ export const pokemonSpeciesPokedexNumbers = sqliteTable(
   ],
 );
 
+export const pokemonCardSets = sqliteTable(
+  'pokemon_card_sets',
+  {
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+    region: text('region').notNull(),
+    source: text('source').notNull(),
+    ptcgoCode: text('ptcgo_code'),
+  },
+  (table) => [primaryKey({ columns: [table.region, table.code] })],
+);
+
 export const seedSyncState = sqliteTable('seed_sync_state', {
   seedName: text('seed_name').primaryKey(),
   lastSuccessfulSyncAt: text('last_successful_sync_at').notNull(),

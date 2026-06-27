@@ -1,3 +1,13 @@
+CREATE TABLE `pokemon_card_sets` (
+  `code` text NOT NULL,
+  `name` text NOT NULL,
+  `region` text NOT NULL,
+  `source` text NOT NULL,
+  `ptcgo_code` text,
+  PRIMARY KEY (`region`, `code`)
+);
+
+--> statement-breakpoint
 CREATE TABLE `pokemon_species` (
   `id` integer PRIMARY KEY NOT NULL,
   `name` text NOT NULL,

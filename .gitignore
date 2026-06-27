@@ -366,3 +366,4 @@ scratch.*
 *.sqlite
 api/.data/
 debug
+.pnpm-store

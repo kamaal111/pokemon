@@ -45,6 +45,7 @@ struct PokemonCardTextExtractionSampleSmokeTests {
         #expect(containsKana)
         #expect(containsKanjiOrChinese)
     }
+
 }
 
 private enum SampleCard: String, CaseIterable {

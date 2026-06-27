@@ -12,8 +12,31 @@ struct PokemonCardTextRecognizerConfiguration: Equatable {
     let recognitionLevel: VNRequestTextRecognitionLevel
     let automaticallyDetectsLanguage: Bool
     let recognitionLanguages: [String]
+    let usesLanguageCorrection: Bool
+    let customWords: [String]
     let minimumTextHeight: Float
     let regionOfInterest: CGRect?
+    let revision: Int?
+
+    init(
+        recognitionLevel: VNRequestTextRecognitionLevel,
+        automaticallyDetectsLanguage: Bool,
+        recognitionLanguages: [String],
+        usesLanguageCorrection: Bool = true,
+        customWords: [String] = [],
+        minimumTextHeight: Float,
+        regionOfInterest: CGRect?,
+        revision: Int? = nil
+    ) {
+        self.recognitionLevel = recognitionLevel
+        self.automaticallyDetectsLanguage = automaticallyDetectsLanguage
+        self.recognitionLanguages = recognitionLanguages
+        self.usesLanguageCorrection = usesLanguageCorrection
+        self.customWords = customWords
+        self.minimumTextHeight = minimumTextHeight
+        self.regionOfInterest = regionOfInterest
+        self.revision = revision
+    }
 }
 
 struct PokemonCardRawTextObservation: Equatable {
@@ -38,9 +61,13 @@ struct VisionPokemonCardTextRecognizer: PokemonCardTextRecognizing {
         guard let cgImage = image.cgImage else { return .failure(.invalidImage) }
 
         let request = VNRecognizeTextRequest()
+        if let revision = configuration.revision {
+            request.revision = revision
+        }
         request.recognitionLevel = configuration.recognitionLevel
         request.automaticallyDetectsLanguage = configuration.automaticallyDetectsLanguage
-        request.usesLanguageCorrection = true
+        request.usesLanguageCorrection = configuration.usesLanguageCorrection
+        request.customWords = configuration.customWords
         request.minimumTextHeight = configuration.minimumTextHeight
         if !configuration.recognitionLanguages.isEmpty {
             request.recognitionLanguages = configuration.recognitionLanguages

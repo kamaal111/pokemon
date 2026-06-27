@@ -4,28 +4,31 @@ import {
   getLastSuccessfulSeedSyncAt,
   getExistingSpeciesIds,
   insertPokemonSpecies,
+  markSuccessfulNamedSeedSync,
   markSuccessfulSeedSync,
+  upsertPokemonCardSets,
 } from './repository.ts';
+import { CARD_SETS_SEED_SYNC_STATE_NAME } from './constants.ts';
 import {
   collectPokemonSpeciesSummaries,
   fetchPokemonSpeciesDetails,
   fetchPokemonSpeciesPage,
 } from './pokeapi.ts';
-import type { SeedPokeDexSuccessResponse } from './responses.ts';
+import { fetchLimitlessJapaneseCardSets } from './limitless.ts';
+import { fetchPokemonTcgApiEnglishCardSets } from './pokemon-tcg-api.ts';
+import type { SeedCardSetsSuccessResponse, SeedPokeDexSuccessResponse } from './responses.ts';
 import env from '../env.ts';
 
 export interface SeedDependencies {
   fetch: typeof fetch;
 }
 
-interface SeedPokedexOptions extends SeedDependencies {
+interface SeedOptions extends SeedDependencies {
   database: Database;
   now?: () => Date;
 }
 
-export async function seedPokedex(
-  options: SeedPokedexOptions,
-): Promise<SeedPokeDexSuccessResponse> {
+export async function seedPokedex(options: SeedOptions): Promise<SeedPokeDexSuccessResponse> {
   const firstPage = await fetchPokemonSpeciesPage(0, options.fetch);
   const lastSuccessfulSeedSyncAt = await getLastSuccessfulSeedSyncAt(options.database);
   const resolveNow = options.now ?? (() => new Date());
@@ -73,6 +76,25 @@ export async function seedPokedex(
   if (finalContiguousSeededPrefix >= upstreamTotal) {
     await markSuccessfulSeedSync(options.database, resolveNow().toISOString());
   }
+
+  return { saved };
+}
+
+export async function seedPokemonCardSets(
+  options: SeedOptions,
+): Promise<SeedCardSetsSuccessResponse> {
+  const [japaneseCardSets, englishCardSets] = await Promise.all([
+    fetchLimitlessJapaneseCardSets(options.fetch),
+    fetchPokemonTcgApiEnglishCardSets(options.fetch),
+  ]);
+  const resolveNow = options.now ?? (() => new Date());
+  const seededAt = resolveNow().toISOString();
+  const saved = await upsertPokemonCardSets(options.database, [
+    ...japaneseCardSets,
+    ...englishCardSets,
+  ]);
+
+  await markSuccessfulNamedSeedSync(options.database, CARD_SETS_SEED_SYNC_STATE_NAME, seededAt);
 
   return { saved };
 }

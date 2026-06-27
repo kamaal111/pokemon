@@ -27,3 +27,11 @@ export interface NormalizedPokemonSpecies {
   genera: PokemonSpeciesGenus[];
   pokedexNumbers: PokemonSpeciesPokedexNumber[];
 }
+
+export interface PokemonCardSet {
+  code: string;
+  name: string;
+  region: string;
+  source: string;
+  ptcgoCode: string | null;
+}
