@@ -148,6 +148,107 @@ struct PokemonCardFramePipelineTests {
     }
 
     @Test
+    func `Should complete captured card with Foundation Models metadata by default`() async throws {
+        let detection = Self.detection()
+        let didCallFoundationModels = TestFlag()
+        let didCallVisionName = TestFlag()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { _ in
+                didCallVisionName.value = true
+                return "Vision Name"
+            },
+            extractFoundationModelMetadata: { image in
+                didCallFoundationModels.value = true
+                #expect(image.size == CGSize(width: 240, height: 336))
+                return .success(PokemonCardMetadataExtractionResult(pokemonName: "이브이ex", setID: "sv8a"))
+            },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let metadataCapture = await pipeline.completeCaptureMetadata(for: capture)
+
+        #expect(didCallFoundationModels.value)
+        #expect(!didCallVisionName.value)
+        #expect(metadataCapture.pokemonName == "이브이ex")
+        #expect(metadataCapture.setID == "sv8a")
+        #expect(metadataCapture.metadataErrorMessage == nil)
+    }
+
+    @Test
+    func `Should use Vision name stage when Foundation Models metadata is disabled`() async throws {
+        let detection = Self.detection()
+        let didCallFoundationModels = TestFlag()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { image in
+                #expect(image.size == CGSize(width: 240, height: 336))
+                return "Charizard VMAX"
+            },
+            extractFoundationModelMetadata: { _ in
+                didCallFoundationModels.value = true
+                return .success(PokemonCardMetadataExtractionResult(pokemonName: "이브이ex", setID: "sv8a"))
+            },
+            useFoundationModelsForCardTextExtraction: false,
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let metadataCapture = await pipeline.completeCaptureMetadata(for: capture)
+
+        #expect(!didCallFoundationModels.value)
+        #expect(metadataCapture.pokemonName == "Charizard VMAX")
+        #expect(metadataCapture.setID == nil)
+        #expect(metadataCapture.metadataErrorMessage == nil)
+    }
+
+    @Test
+    func `Should preserve capture and fall back to Vision name when Foundation Models metadata fails`() async throws {
+        let detection = Self.detection()
+        var pipeline = PokemonCardFramePipeline(
+            detectCardShape: { _ in
+                .success(Self.report(selectedDetection: detection))
+            },
+            cropCard: { _, _ in
+                .success(Self.cropResult())
+            },
+            extractPokemonName: { _ in "Fallback Name" },
+            extractFoundationModelMetadata: { _ in .failure(.emptyResult) },
+            autoCaptureGate: PokemonCardAutoCaptureGate()
+        )
+
+        _ = try Self.processReady(&pipeline)
+        _ = try Self.processReady(&pipeline)
+        let result = try Self.processReady(&pipeline)
+        let capture = try #require(result.capture)
+        let metadataCapture = await pipeline.completeCaptureMetadata(for: capture)
+
+        #expect(metadataCapture.detection == detection)
+        #expect(metadataCapture.cropResult.cropImage.size == CGSize(width: 240, height: 336))
+        #expect(metadataCapture.pokemonName == "Fallback Name")
+        #expect(metadataCapture.setID == nil)
+        #expect(
+            metadataCapture.metadataErrorMessage == PokemonCardMetadataExtractionError.emptyResult.localizedDescription)
+    }
+
+    @Test
     func `Should not capture stable card while text region is blurry`() throws {
         let detection = Self.detection()
         let blurryCardImage = try PokemonCardTestImageFilters.gaussianBlurred(
@@ -294,4 +395,8 @@ struct PokemonCardFramePipelineTests {
         }
     }
 
+}
+
+private final class TestFlag: @unchecked Sendable {
+    var value = false
 }

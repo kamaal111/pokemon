@@ -20,6 +20,9 @@ public struct PokemonOcrScreen: View {
     @State private var detectionReport: PokemonCardShapeDetectionReport?
     @State private var textExtractionResult: PokemonCardTextExtractionResult?
     @State private var pokemonName: String?
+    @State private var setID: String?
+    @State private var setIDDebugInfo: PokemonCardSetIDDebugInfo?
+    @State private var setIDDebugImages: [PokemonCardSetIDDebugImage] = []
     @State private var errorMessage: String?
     @State private var isLoading = false
     @State private var isExtractingText = false
@@ -36,6 +39,10 @@ public struct PokemonOcrScreen: View {
                         pokemonNameSection(pokemonName)
                     }
 
+                    if let setID {
+                        setIDSection(setID)
+                    }
+
                     if let capturedImage {
                         imageSection(title: "Original", image: capturedImage)
                     }
@@ -46,6 +53,10 @@ public struct PokemonOcrScreen: View {
 
                     if isExtractingText {
                         ProgressView("Extracting text")
+                    }
+
+                    if let setIDDebugInfo {
+                        setIDDebugSection(info: setIDDebugInfo, images: setIDDebugImages)
                     }
 
                     if let textExtractionResult {
@@ -81,6 +92,68 @@ public struct PokemonOcrScreen: View {
                 .padding(.horizontal, 12)
                 .background(Color.green.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func setIDSection(_ setID: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Set ID")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text(setID)
+                .font(.system(.title, design: .rounded).weight(.bold))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.blue.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func setIDDebugSection(
+        info: PokemonCardSetIDDebugInfo,
+        images: [PokemonCardSetIDDebugImage]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Set ID Debug")
+                .font(.headline)
+
+            Text("Selected crop: \(info.selectedCropLabel ?? "none")")
+                .font(.caption.monospaced())
+                .foregroundColor(.secondary)
+
+            if !info.rawCandidates.isEmpty {
+                Text(info.rawCandidates.joined(separator: "\n"))
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if !images.isEmpty {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.adaptive(minimum: 140), spacing: 10)
+                    ],
+                    alignment: .leading,
+                    spacing: 10
+                ) {
+                    ForEach(images) { debugImage in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Image(uiImage: debugImage.image)
+                                .resizable()
+                                .scaledToFit()
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                            Text(debugImage.label)
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -296,6 +369,9 @@ public struct PokemonOcrScreen: View {
         result = nil
         textExtractionResult = nil
         pokemonName = nil
+        setID = nil
+        setIDDebugInfo = nil
+        setIDDebugImages = []
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -317,6 +393,9 @@ public struct PokemonOcrScreen: View {
         result = nil
         textExtractionResult = nil
         pokemonName = nil
+        setID = nil
+        setIDDebugInfo = nil
+        setIDDebugImages = []
         errorMessage = nil
         capturedImage = nil
         detectionReport = nil
@@ -327,6 +406,9 @@ public struct PokemonOcrScreen: View {
         isLoading = true
         errorMessage = nil
         pokemonName = nil
+        setID = nil
+        setIDDebugInfo = nil
+        setIDDebugImages = []
         capturedImage = image
 
         Task.detached(priority: .userInitiated) {
@@ -354,6 +436,12 @@ public struct PokemonOcrScreen: View {
         capturedImage = capture.originalImage
         result = capture.cropResult
         pokemonName = capture.pokemonName
+        setID = capture.setID
+        setIDDebugInfo = capture.setIDDebugInfo
+        setIDDebugImages = capture.setIDDebugImages
+        if let metadataErrorMessage = capture.metadataErrorMessage {
+            errorMessage = metadataErrorMessage
+        }
         cameraState = .completed
         extractText(from: capture.cropResult.cropImage)
     }
