@@ -158,6 +158,10 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Local research/reference material
+.agents/plans/
+FoundationModelPlay/
+
 # yarn v2
 .yarn/cache
 .yarn/unplugged

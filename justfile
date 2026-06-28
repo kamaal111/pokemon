@@ -17,6 +17,8 @@ OCR_LEXICON_OUTPUT_PATH := env(
     "app/Modules/PokemonFeatures/Sources/PokemonOcr/Internal/Resources/PokemonSpeciesLexicon.tsv"
 )
 
+alias z := zed
+
 # List available commands
 default:
     just --list --unsorted
@@ -257,7 +259,7 @@ bootstrap: prepare bootstrap-api
 bootstrap-api: prepare-api
 
 # Open project in zed
-z:
+zed:
     zed .
 
 # Open project in vscode

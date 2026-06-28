@@ -7,6 +7,7 @@
 
 @preconcurrency import AVFoundation
 import CoreImage
+import Foundation
 import KamaalLogger
 import PokemonCardDetection
 import PokemonCardFocusQuality
@@ -32,7 +33,19 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
     private var onFrameCaptured: ((UIImage) -> Void)?
     private var onDetectionReportChange: ((PokemonCardShapeDetectionReport?) -> Void)?
     private var onDetectedFrameCaptured: ((PokemonCardPipelineCapture) -> Void)?
+    private let useFoundationModelsForCardTextExtraction: Bool
     private let logger = KamaalLogger(from: PokemonCardCameraController.self)
+
+    init(useFoundationModelsForCardTextExtraction: Bool? = nil) {
+        let resolvedUseFoundationModelsForCardTextExtraction =
+            useFoundationModelsForCardTextExtraction
+            ?? PokemonCardCameraController.defaultUseFoundationModelsForCardTextExtraction()
+        self.useFoundationModelsForCardTextExtraction = resolvedUseFoundationModelsForCardTextExtraction
+        self.framePipeline = PokemonCardFramePipeline(
+            useFoundationModelsForCardTextExtraction: resolvedUseFoundationModelsForCardTextExtraction
+        )
+        super.init()
+    }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -123,7 +136,9 @@ final class PokemonCardCameraController: NSObject, @unchecked Sendable {
 
             self.latestFrame = nil
             self.detectionThrottler.reset()
-            self.framePipeline = PokemonCardFramePipeline()
+            self.framePipeline = PokemonCardFramePipeline(
+                useFoundationModelsForCardTextExtraction: self.useFoundationModelsForCardTextExtraction
+            )
             self.refocusCoordinator.reset()
             self.emitDetectionReport(nil)
             if !self.session.isRunning {
@@ -369,7 +384,7 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
         Task { [weak self, framePipeline] in
             guard let self else { return }
 
-            let namedCapture = await framePipeline.completeCaptureName(for: capture)
+            let namedCapture = await framePipeline.completeCaptureMetadata(for: capture)
             DispatchQueue.main.async {
                 self.onDetectedFrameCaptured?(namedCapture)
             }
@@ -421,6 +436,10 @@ extension PokemonCardCameraController: AVCaptureVideoDataOutputSampleBufferDeleg
             x: min(max(1 - rect.midY, 0), 1),
             y: min(max(1 - rect.midX, 0), 1)
         )
+    }
+
+    private static func defaultUseFoundationModelsForCardTextExtraction() -> Bool {
+        ProcessInfo.processInfo.environment["POKEMON_OCR_USE_FOUNDATION_MODELS"] != "0"
     }
 
     private func logPipelineResult(
